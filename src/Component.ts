@@ -1,10 +1,13 @@
 import { Entity } from "./Entity";
+import { UpdateProps } from "./Ticker";
 
 export type ComponentId = `c_${string}`;
 
 function genComponentId(): ComponentId {
   return `c_${Math.random().toString(36).substr(2, 9)}`;
 }
+
+export interface ComponentUpdateProps extends UpdateProps {}
 
 export abstract class Component {
   _entity: Entity | null = null;
@@ -16,6 +19,6 @@ export abstract class Component {
   }
   id: ComponentId = genComponentId();
   onAttach?() {}
-  onUpdate?(deltaTime: number) {}
+  onUpdate?(props: ComponentUpdateProps) {}
   renderDebug?(): any;
 }

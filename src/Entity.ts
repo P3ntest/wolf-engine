@@ -1,11 +1,14 @@
 import { Component } from "./Component";
 import { Scene } from "./Scene";
+import { UpdateProps } from "./Ticker";
 
 export type EntityId = `e_${string}`;
 
 function genEntityId(): EntityId {
   return `e_${Math.random().toString(36).substr(2, 9)}`;
 }
+
+export interface EntityUpdateProps extends UpdateProps {}
 
 export class Entity {
   components: Component[] = [];
@@ -27,15 +30,23 @@ export class Entity {
     return child;
   }
 
-  update(deltaTime: number) {
+  getAllChildren(): Entity[] {
+    const children = [...this.children];
+    this.children.forEach((child) => {
+      children.push(...child.getAllChildren());
+    });
+    return children;
+  }
+
+  update(props: EntityUpdateProps) {
     this.components.forEach((component) => {
       if (component.onUpdate) {
-        component.onUpdate(deltaTime);
+        component.onUpdate(props);
       }
     });
 
     this.children.forEach((child) => {
-      child.update(deltaTime);
+      child.update(props);
     });
   }
 

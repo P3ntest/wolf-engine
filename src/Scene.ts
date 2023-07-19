@@ -1,22 +1,59 @@
 import { Entity } from "./Entity";
 import { System } from "./System";
-import { Ticker } from "./Ticker";
-
+import { Ticker, UpdateProps } from "./Ticker";
 export class Scene {
-  entities: Entity[] = [];
-  systems: System[] = [];
+  private renderers: System[] = [];
+
+  private entities: Entity[] = [];
+  private systems: System[] = [];
   ticker: Ticker = new Ticker((deltaTime) => this.loop(deltaTime));
 
-  private loop(time: number = 0) {
+  getRootEntities(): Entity[] {
+    return this.entities;
+  }
+
+  getAllEntities(): Entity[] {
+    const entities: Entity[] = [];
+    entities.push(...this.entities);
+    entities.forEach((entity) => {
+      entities.push(...entity.getAllChildren());
+    });
+
+    return entities;
+  }
+
+  private loop({ deltaTime }: UpdateProps) {
     this.systems.forEach((system) => {
       if (system.onUpdate) {
-        system.onUpdate(time, this);
+        system.onUpdate({
+          deltaTime,
+          scene: this,
+          entities: this.getAllEntities(),
+        });
       }
     });
 
     this.entities.forEach((entity) => {
-      entity.update(time);
+      entity.update({ deltaTime });
     });
+
+    this.renderers.forEach((renderer) => {
+      if (renderer.onUpdate) {
+        renderer.onUpdate({
+          deltaTime,
+          scene: this,
+          entities: this.getAllEntities(),
+        });
+      }
+    });
+  }
+
+  addSystem(system: System) {
+    this.systems.push(system);
+  }
+
+  addRenderer(renderer: System) {
+    this.renderers.push(renderer);
   }
 
   createEntity(): Entity {

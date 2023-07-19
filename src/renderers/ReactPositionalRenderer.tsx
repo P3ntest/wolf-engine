@@ -1,6 +1,6 @@
 import { Root, createRoot } from "react-dom/client";
 import { Scene } from "../Scene";
-import { System } from "../System";
+import { System, SystemUpdateProps } from "../System";
 import { Entity } from "../Entity";
 import { Component } from "../Component";
 import { Vector2 } from "../utils/vector";
@@ -14,7 +14,7 @@ export class ReactPositionalRenderer extends System {
     this.root = createRoot(htmlElement);
     this.backgroundColor = backgroundColor;
   }
-  onUpdate(deltaTime: number, scene: Scene) {
+  onUpdate({ deltaTime, scene }: SystemUpdateProps) {
     this.root.render(
       <Screen scene={scene} backgroundColor={this.backgroundColor} />
     );
@@ -40,7 +40,7 @@ function Screen({
         backgroundColor,
       }}
     >
-      <EntitiesRenderer entities={scene.entities} />
+      <EntitiesRenderer entities={scene.getRootEntities()} />
     </div>
   );
 }

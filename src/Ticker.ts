@@ -1,9 +1,13 @@
+export interface UpdateProps {
+  deltaTime: number;
+}
+
 export class Ticker {
   running = false;
   lastTime = 0;
   deltaTime = 0;
 
-  constructor(private readonly callback: (deltaTime: number) => void) {
+  constructor(private readonly callback: (props: UpdateProps) => void) {
     this.loop = this.loop.bind(this);
   }
 
@@ -24,7 +28,7 @@ export class Ticker {
     this.deltaTime = time - this.lastTime;
     this.lastTime = time;
 
-    this.callback(this.deltaTime);
+    this.callback({ deltaTime: this.deltaTime });
 
     requestAnimationFrame(this.loop);
   }

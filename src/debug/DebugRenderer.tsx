@@ -1,4 +1,4 @@
-import { System } from "../System";
+import { System, SystemUpdateProps } from "../System";
 import { Root, createRoot } from "react-dom/client";
 import { Scene } from "../Scene";
 import { Entity } from "../Entity";
@@ -12,7 +12,7 @@ export class DebugRenderer extends System {
     this.root = createRoot(htmlElement);
   }
 
-  onUpdate(deltaTime: number, scene: Scene) {
+  onUpdate({ deltaTime, scene }: SystemUpdateProps) {
     this.root.render(
       <DebugDropdown>
         <SceneECSDebug scene={scene} />
@@ -60,9 +60,9 @@ export function SceneECSDebug({ scene }: { scene: Scene }) {
   return (
     <div>
       <h1>Scene</h1>
-      <p>Entities: {scene.entities.length}</p>
+      <p>Entities: {scene.getRootEntities().length}</p>
       <ul>
-        {scene.entities.map((entity) => (
+        {scene.getRootEntities().map((entity) => (
           <li key={entity.id}>
             <EntityDebug entity={entity} />
           </li>
