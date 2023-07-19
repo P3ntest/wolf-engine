@@ -16,6 +16,22 @@ export class Entity {
 
   children: Entity[] = [];
 
+  private tags: Set<string> = new Set();
+
+  addTag(tag: string): typeof this {
+    this.tags.add(tag);
+    return this;
+  }
+
+  removeTag(tag: string): typeof this {
+    this.tags.delete(tag);
+    return this;
+  }
+
+  hasTag(tag: string) {
+    return this.tags.has(tag);
+  }
+
   _parent: Entity | Scene | null = null;
   get parent(): Entity | Scene {
     if (!this._parent) {
@@ -52,18 +68,23 @@ export class Entity {
 
   private addEntity(entity: Entity) {
     entity._parent = this;
+    entity._onAttach();
     this.children.push(entity);
   }
 
-  addComponents(...components: Component[]) {
+  addComponents(...components: Component[]): typeof this {
     components.forEach((component) => {
       this.addComponent(component);
     });
+
+    return this;
   }
 
-  addComponent(component: Component) {
+  addComponent(component: Component): typeof this {
     component._entity = this;
     this.components.push(component);
+
+    return this;
   }
 
   hasComponent<T extends Component>(
@@ -83,6 +104,32 @@ export class Entity {
     }
 
     return component;
+  }
+
+  _removeEntity(entity: Entity) {
+    this.children = this.children.filter((c) => c !== entity);
+  }
+
+  _onAttach() {
+    this.components.forEach((component) => {
+      if (component.onAttach) {
+        component.onAttach();
+      }
+    });
+  }
+
+  destroy() {
+    this.children.forEach((child) => {
+      child.destroy();
+    });
+
+    this.components.forEach((component) => {
+      if (component.onDestroy) {
+        component.onDestroy();
+      }
+    });
+
+    this.parent._removeEntity(this);
   }
 
   getComponent<T extends Component>(

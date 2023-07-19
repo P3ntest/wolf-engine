@@ -73,6 +73,10 @@ export class Scene {
     this.renderers.push(renderer);
   }
 
+  _removeEntity(entity: Entity) {
+    this.entities = this.entities.filter((e) => e !== entity);
+  }
+
   createEntity(): Entity {
     const entity = new Entity();
 
@@ -83,6 +87,7 @@ export class Scene {
 
   private addEntity(entity: Entity) {
     this.entities.push(entity);
+    entity._onAttach();
     entity._parent = this;
   }
 }

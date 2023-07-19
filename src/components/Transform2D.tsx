@@ -47,12 +47,6 @@ export class Transform2D extends Component {
     this._localPosition = this._localPosition.add(vector);
   }
 
-  constructor(x = 0, y = 0) {
-    super();
-    this._localPosition.x = x;
-    this._localPosition.y = y;
-  }
-
   getGlobalRotation(): number {
     if (this.entity.parent instanceof Scene) {
       return this.localRotation;
