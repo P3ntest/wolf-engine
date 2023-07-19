@@ -1,6 +1,18 @@
 export class Input {
   static instance = new Input();
 
+  static defineAxis(
+    axisName: string,
+    positiveKeys: string[],
+    negativeKeys: string[]
+  ) {
+    Input.instance.axes.push({
+      name: axisName,
+      positiveKeys,
+      negativeKeys,
+    });
+  }
+
   static init() {
     Input.instance = new Input();
 

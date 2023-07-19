@@ -19,6 +19,16 @@ export class Vector2 {
     return Math.sqrt(this.x * this.x + this.y * this.y);
   }
 
+  rotate(angle: number) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+
+    return new Vector2(
+      this.x * cos - this.y * sin,
+      this.x * sin + this.y * cos
+    );
+  }
+
   normalize() {
     const length = this.length();
 

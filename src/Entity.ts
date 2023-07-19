@@ -66,11 +66,15 @@ export class Entity {
     this.components.push(component);
   }
 
-  hasComponent<T extends Component>(componentType: new () => T): boolean {
+  hasComponent<T extends Component>(
+    componentType: new (...props: any[]) => T
+  ): boolean {
     return this.components.some((c) => c instanceof componentType);
   }
 
-  requireComponent<T extends Component>(componentType: new () => T): T {
+  requireComponent<T extends Component>(
+    componentType: ComponentConstructor<T>
+  ): T {
     const component = this.getComponent(componentType);
     if (!component) {
       throw new Error(
@@ -81,12 +85,18 @@ export class Entity {
     return component;
   }
 
-  getComponent<T extends Component>(componentType: new () => T): T | null {
+  getComponent<T extends Component>(
+    componentType: ComponentConstructor<T>
+  ): T | null {
     return (this.components.find((c) => c instanceof componentType) ??
       null) as T | null;
   }
 
-  getComponents<T extends Component>(componentType: new () => T): T[] {
+  getComponents<T extends Component>(
+    componentType: ComponentConstructor<T>
+  ): T[] {
     return this.components.filter((c) => c instanceof componentType) as T[];
   }
 }
+
+type ComponentConstructor<T extends Component> = new (...props: any[]) => T;

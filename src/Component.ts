@@ -21,4 +21,21 @@ export abstract class Component {
   onAttach?() {}
   onUpdate?(props: ComponentUpdateProps) {}
   renderDebug?(): any;
+
+  static fromMethods(methods: {
+    onAttach?(this: Component): void;
+    onUpdate?(this: Component, props: ComponentUpdateProps): void;
+    renderDebug?(this: Component): any;
+  }): Component {
+    return new MethodComponent(methods);
+  }
+}
+
+class MethodComponent extends Component {
+  constructor(public methods: any) {
+    super();
+    this.onAttach = methods.onAttach;
+    this.onUpdate = methods.onUpdate;
+    this.renderDebug = methods.renderDebug;
+  }
 }

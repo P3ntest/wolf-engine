@@ -5,6 +5,8 @@ import { Vector2 } from "../utils/vector";
 export class Transform2D extends Component {
   _localPosition: Vector2 = new Vector2();
 
+  localRotation: number = 0;
+
   get localPosition(): Vector2 {
     return this._localPosition.clone();
   }
@@ -12,6 +14,14 @@ export class Transform2D extends Component {
   setPosition(x: number, y: number) {
     this._localPosition.x = x;
     this._localPosition.y = y;
+  }
+
+  setRotation(rotation: number) {
+    this.localRotation = rotation;
+  }
+
+  rotate(rotation: number) {
+    this.localRotation += rotation;
   }
 
   move(vector: Vector2) {
@@ -22,6 +32,16 @@ export class Transform2D extends Component {
     super();
   }
 
+  getGlobalRotation(): number {
+    if (this.entity.parent instanceof Scene) {
+      return this.localRotation;
+    }
+
+    const parentTransform = this.entity.parent.requireComponent(Transform2D);
+
+    return parentTransform.getGlobalRotation() + this.localRotation;
+  }
+
   getGlobalPosition(): Vector2 {
     if (this.entity.parent instanceof Scene) {
       return this.localPosition;
@@ -29,7 +49,12 @@ export class Transform2D extends Component {
 
     const parentTransform = this.entity.parent.requireComponent(Transform2D);
 
-    return parentTransform.getGlobalPosition().add(this.localPosition);
+    const parentGlobalPosition = parentTransform.getGlobalPosition();
+    const parentGlobalRotation = parentTransform.getGlobalRotation();
+
+    const rotatedPosition = this.localPosition.rotate(parentGlobalRotation);
+
+    return parentGlobalPosition.add(rotatedPosition);
   }
 
   renderDebug() {

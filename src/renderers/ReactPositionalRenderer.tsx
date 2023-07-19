@@ -63,6 +63,9 @@ function EntitiesRenderer({ entities }: { entities: Entity[] }) {
           entity.getComponent(Transform2D)?.getGlobalPosition() ??
           new Vector2();
 
+        const rotation: number =
+          entity.getComponent(Transform2D)?.getGlobalRotation() ?? 0;
+
         return (
           <div
             key={entity.id}
@@ -70,6 +73,7 @@ function EntitiesRenderer({ entities }: { entities: Entity[] }) {
               position: "absolute",
               top: position.y,
               left: position.x,
+              transform: `rotate(${rotation}rad)`,
             }}
           >
             {component.renderHtml()}
