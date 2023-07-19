@@ -1,0 +1,22 @@
+{
+  "name": "wolf-engine",
+  "version": "1.0.1",
+  "description": "",
+  "main": "src/index.ts",
+  "scripts": {
+    "barrels": "barrelsby --delete -d src"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "barrelsby": "^2.8.0",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
