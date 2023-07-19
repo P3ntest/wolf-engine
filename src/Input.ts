@@ -30,15 +30,31 @@ export class Input {
     );
 
     window.addEventListener("keydown", (e) => {
+      if (!Input.instance.keys.get(e.key)) {
+        Input.instance.keyDowns.push(e.key);
+      }
+
       Input.instance.keys.set(e.key, true);
     });
 
     window.addEventListener("keyup", (e) => {
+      if (Input.instance.keys.get(e.key)) {
+        Input.instance.keyUps.push(e.key);
+      }
+
       Input.instance.keys.set(e.key, false);
     });
   }
 
   keys = new Map<string, boolean>();
+
+  keyDowns: string[] = [];
+  keyUps: string[] = [];
+
+  _resetFrame() {
+    this.keyDowns = [];
+    this.keyUps = [];
+  }
 
   axes: Axis[] = [];
 
@@ -68,6 +84,14 @@ export class Input {
 
   static getKey(key: string): boolean {
     return Input.instance.keys.get(key) ?? false;
+  }
+
+  static getKeyDown(key: string): boolean {
+    return Input.instance.keyDowns.includes(key);
+  }
+
+  static getKeyUp(key: string): boolean {
+    return Input.instance.keyUps.includes(key);
   }
 }
 

@@ -1,6 +1,7 @@
 import { Component } from "../Component";
 import { Scene } from "../Scene";
 import { Vector2 } from "../utils/vector";
+import { RigidBody2D } from "./RigidBody2D";
 
 export class Transform2D extends Component {
   _localPosition: Vector2 = new Vector2();
@@ -11,25 +12,45 @@ export class Transform2D extends Component {
     return this._localPosition.clone();
   }
 
-  setPosition(x: number, y: number) {
-    this._localPosition.x = x;
-    this._localPosition.y = y;
+  setPosition(vector: Vector2) {
+    if (this.entity.hasComponent(RigidBody2D)) {
+      const rb = this.entity.requireComponent(RigidBody2D).setPosition(vector);
+      return;
+    }
+    this._localPosition.x = vector.x;
+    this._localPosition.y = vector.y;
   }
 
   setRotation(rotation: number) {
+    if (this.entity.hasComponent(RigidBody2D)) {
+      const rb = this.entity
+        .requireComponent(RigidBody2D)
+        .setRotation(rotation);
+      return;
+    }
     this.localRotation = rotation;
   }
 
   rotate(rotation: number) {
+    if (this.entity.hasComponent(RigidBody2D)) {
+      const rb = this.entity.requireComponent(RigidBody2D).rotate(rotation);
+      return;
+    }
     this.localRotation += rotation;
   }
 
-  move(vector: Vector2) {
+  translate(vector: Vector2) {
+    if (this.entity.hasComponent(RigidBody2D)) {
+      const rb = this.entity.requireComponent(RigidBody2D).translate(vector);
+      return;
+    }
     this._localPosition = this._localPosition.add(vector);
   }
 
-  constructor() {
+  constructor(x = 0, y = 0) {
     super();
+    this._localPosition.x = x;
+    this._localPosition.y = y;
   }
 
   getGlobalRotation(): number {
@@ -55,6 +76,37 @@ export class Transform2D extends Component {
     const rotatedPosition = this.localPosition.rotate(parentGlobalRotation);
 
     return parentGlobalPosition.add(rotatedPosition);
+  }
+
+  setGlobalRotation(rotation: number) {
+    if (this.entity.parent instanceof Scene) {
+      this.localRotation = rotation;
+      return;
+    }
+
+    const parentTransform = this.entity.parent.requireComponent(Transform2D);
+
+    const parentGlobalRotation = parentTransform.getGlobalRotation();
+
+    this.localRotation = rotation - parentGlobalRotation;
+  }
+
+  setGlobalPosition(x: number, y: number) {
+    if (this.entity.parent instanceof Scene) {
+      this._localPosition.x = x;
+      this._localPosition.y = y;
+      return;
+    }
+
+    const parentTransform = this.entity.parent.requireComponent(Transform2D);
+
+    const parentGlobalPosition = parentTransform.getGlobalPosition();
+
+    const rotatedPosition = new Vector2(x, y).subtract(parentGlobalPosition);
+
+    const parentGlobalRotation = parentTransform.getGlobalRotation();
+
+    this._localPosition = rotatedPosition.rotate(-parentGlobalRotation);
   }
 
   renderDebug() {

@@ -1,4 +1,6 @@
+import { Component, ComponentId } from "./Component";
 import { Entity } from "./Entity";
+import { Input } from "./Input";
 import { System } from "./System";
 import { Ticker, UpdateProps } from "./Ticker";
 export class Scene {
@@ -46,13 +48,28 @@ export class Scene {
         });
       }
     });
+
+    Input.instance._resetFrame();
+  }
+
+  getComponentById(id: ComponentId): Component | null {
+    for (const entity of this.getAllEntities()) {
+      for (const component of entity.components) {
+        if (component.id === id) {
+          return component;
+        }
+      }
+    }
+    return null;
   }
 
   addSystem(system: System) {
+    system._scene = this;
     this.systems.push(system);
   }
 
   addRenderer(renderer: System) {
+    renderer._scene = this;
     this.renderers.push(renderer);
   }
 

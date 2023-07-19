@@ -8,6 +8,13 @@ export interface SystemUpdateProps extends UpdateProps {
 }
 
 export abstract class System {
+  _scene?: Scene;
+  get scene() {
+    if (!this._scene) {
+      throw new Error("Scene of System not set");
+    }
+    return this._scene;
+  }
   onUpdate?(props: SystemUpdateProps): void;
 }
 

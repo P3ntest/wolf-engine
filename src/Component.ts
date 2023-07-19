@@ -1,5 +1,6 @@
 import { Entity } from "./Entity";
 import { UpdateProps } from "./Ticker";
+import { RigidBody2D } from "./components/RigidBody2D";
 
 export type ComponentId = `c_${string}`;
 
@@ -9,7 +10,14 @@ function genComponentId(): ComponentId {
 
 export interface ComponentUpdateProps extends UpdateProps {}
 
-export abstract class Component {
+interface ComponentMethods<T extends Component = Component> {
+  onAttach(this: T): void;
+  onUpdate(this: T, props: ComponentUpdateProps): void;
+  renderDebug(this: T): any;
+  onCollisionStart2D(this: T, other: RigidBody2D): void;
+}
+
+export abstract class Component implements Partial<ComponentMethods> {
   _entity: Entity | null = null;
   get entity(): Entity {
     if (!this._entity) {
@@ -18,24 +26,38 @@ export abstract class Component {
     return this._entity;
   }
   id: ComponentId = genComponentId();
-  onAttach?() {}
-  onUpdate?(props: ComponentUpdateProps) {}
-  renderDebug?(): any;
 
-  static fromMethods(methods: {
-    onAttach?(this: Component): void;
-    onUpdate?(this: Component, props: ComponentUpdateProps): void;
-    renderDebug?(this: Component): any;
-  }): Component {
-    return new MethodComponent(methods);
+  onAttach?(): void;
+  onUpdate?(props: ComponentUpdateProps): void;
+  renderDebug?(): any;
+  onCollisionStart2D?(other: Component): void;
+
+  static fromMethods<Context = {}>(
+    methods: Partial<ComponentMethods<MethodComponent<Context>>>
+  ): Component {
+    return new MethodComponent<Context>(methods);
   }
 }
 
-class MethodComponent extends Component {
-  constructor(public methods: any) {
+class MethodComponent<Context> extends Component {
+  context: Context = {} as Context;
+  constructor(
+    public methods: Partial<ComponentMethods<MethodComponent<Context>>>
+  ) {
     super();
-    this.onAttach = methods.onAttach;
-    this.onUpdate = methods.onUpdate;
-    this.renderDebug = methods.renderDebug;
+
+    for (const methodName in methods) {
+      if (Object.prototype.hasOwnProperty.call(methods, methodName)) {
+        (this[methodName as keyof ComponentMethods] as any) =
+          methods[
+            methodName as keyof ComponentMethods<MethodComponent<Context>>
+          ];
+      }
+    }
+
+    // this.onAttach = methods.onAttach;
+    // this.onUpdate = methods.onUpdate;
+    // this.renderDebug = methods.renderDebug;
+    // this.onCollisionStart2D = methods.onCollisionStart2D;
   }
 }

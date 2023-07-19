@@ -15,11 +15,16 @@ export class Vector2 {
     return new Vector2(this.x + vector.x, this.y + vector.y);
   }
 
+  subtract(vector: Vector2) {
+    return new Vector2(this.x - vector.x, this.y - vector.y);
+  }
+
   length() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
   }
 
   rotate(angle: number) {
+    // radians
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
 

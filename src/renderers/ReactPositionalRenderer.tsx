@@ -28,6 +28,22 @@ function Screen({
   scene: Scene;
   backgroundColor: string;
 }) {
+  // Find the camera
+  const camera = scene.getAllEntities().find((entity) => {
+    return entity.hasComponent(ReactPositionalCamera);
+  });
+
+  const camPos =
+    camera?.getComponent(Transform2D)?.getGlobalPosition() ?? new Vector2();
+  const camRot = camera?.getComponent(Transform2D)?.getGlobalRotation() ?? 0;
+
+  const screenVec = new Vector2(window.innerWidth, window.innerHeight)
+    .multiplyScalar(0.5)
+    .rotate(camRot);
+
+  camPos.x -= screenVec.x;
+  camPos.y -= screenVec.y;
+
   return (
     <div
       style={{
@@ -40,31 +56,40 @@ function Screen({
         backgroundColor,
       }}
     >
-      <EntitiesRenderer entities={scene.getRootEntities()} />
+      <EntitiesRenderer
+        camPos={camPos}
+        camRot={camRot}
+        entities={scene
+          .getAllEntities()
+          .filter((e) => e.hasComponent(ReactRenderedComponent))}
+      />
     </div>
   );
 }
 
-function EntitiesRenderer({ entities }: { entities: Entity[] }) {
+function EntitiesRenderer({
+  entities,
+  camRot,
+  camPos,
+}: {
+  entities: Entity[];
+  camRot: number;
+  camPos: Vector2;
+}) {
   return (
     <>
-      {entities.map((entity) => (
-        <EntitiesRenderer
-          entities={entity.children}
-          key={"children" + entity.id}
-        />
-      ))}
       {entities.map((entity) => {
-        if (!entity.hasComponent(ReactRenderedComponent)) {
-          return null;
-        }
         const component = entity.getComponent(ReactRenderedComponent)!;
-        const position: Vector2 =
+        const localPosition: Vector2 =
           entity.getComponent(Transform2D)?.getGlobalPosition() ??
           new Vector2();
 
-        const rotation: number =
+        const localRotation: number =
           entity.getComponent(Transform2D)?.getGlobalRotation() ?? 0;
+
+        // Get the position relative to the camera
+        const position = localPosition.subtract(camPos).rotate(-camRot);
+        const rotation = localRotation - camRot;
 
         return (
           <div
@@ -73,10 +98,16 @@ function EntitiesRenderer({ entities }: { entities: Entity[] }) {
               position: "absolute",
               top: position.y,
               left: position.x,
-              transform: `rotate(${rotation}rad)`,
+              transform: `translate(-50%, -50%)`,
             }}
           >
-            {component.renderHtml()}
+            <div
+              style={{
+                transform: `rotate(${rotation}rad)`,
+              }}
+            >
+              {component.renderHtml()}
+            </div>
           </div>
         );
       })}
@@ -96,3 +127,5 @@ export class ReactRenderedComponent extends Component {
     return this._renderFn?.() ?? null;
   }
 }
+
+export class ReactPositionalCamera extends Component {}
