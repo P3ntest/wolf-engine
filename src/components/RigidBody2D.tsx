@@ -5,10 +5,16 @@ import { Vector2 } from "../utils/vector";
 export class RigidBody2D extends Component {
   body: Matter.Body;
 
+  _collidingWith: Set<RigidBody2D> = new Set();
+
   constructor(body: Matter.Body) {
     super();
 
     this.body = body;
+  }
+
+  getCollidingWith(): RigidBody2D[] {
+    return Array.from(this._collidingWith);
   }
 
   applyForce(vector: Vector2) {

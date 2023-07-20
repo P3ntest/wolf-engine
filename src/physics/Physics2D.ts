@@ -8,10 +8,10 @@ import { Scene } from "../Scene";
 export class Physics2D extends System {
   engine: Engine;
 
-  private getComponentFromBody(body: Matter.Body) {
+  getComponentFromBody(body: Matter.Body): RigidBody2D | null {
     for (const [id, b] of this.bodies) {
       if (b === body) {
-        return this.scene.getComponentById(id);
+        return this.scene.getComponentById(id) as RigidBody2D;
       }
     }
 
@@ -22,31 +22,7 @@ export class Physics2D extends System {
     super();
     this.engine = Engine.create();
 
-    Events.on(this.engine, "collisionStart", (event) => {
-      const pairs = event.pairs;
-
-      for (const pair of pairs) {
-        const { bodyA, bodyB } = pair;
-
-        const componentA = this.getComponentFromBody(bodyA);
-        const componentB = this.getComponentFromBody(bodyB);
-
-        if (componentA && componentB) {
-          componentA.entity.components.forEach((component) => {
-            if (component.onCollisionStart2D) {
-              component.onCollisionStart2D(componentB);
-            }
-          });
-          componentB.entity.components.forEach((component) => {
-            if (component.onCollisionStart2D) {
-              component.onCollisionStart2D(componentA);
-            }
-          });
-        } else {
-          console.warn("Collision between unknown bodies");
-        }
-      }
-    });
+    registerEngineEvents(this.engine, this);
 
     const renderer = Render.create({
       element: document.body,
@@ -109,4 +85,65 @@ export class Physics2D extends System {
       transform.setGlobalRotation(angle);
     });
   }
+}
+
+function registerEngineEvents(engine: Engine, physics: Physics2D) {
+  Events.on(engine, "collisionStart", (event) => {
+    const pairs = event.pairs;
+
+    for (const pair of pairs) {
+      const { bodyA, bodyB } = pair;
+
+      const componentA = physics.getComponentFromBody(bodyA);
+      const componentB = physics.getComponentFromBody(bodyB);
+
+      if (componentA && componentB) {
+        componentA._collidingWith.add(componentB);
+        componentB._collidingWith.add(componentA);
+
+        componentA.entity.components.forEach((component) => {
+          if (component.onCollisionStart2D) {
+            component.onCollisionStart2D(componentB);
+          }
+        });
+        componentB.entity.components.forEach((component) => {
+          if (component.onCollisionStart2D) {
+            component.onCollisionStart2D(componentA);
+          }
+        });
+      } else {
+        console.warn("Collision between unknown bodies");
+      }
+    }
+  });
+
+  Events.on(engine, "collisionEnd", (event) => {
+    const pairs = event.pairs;
+
+    for (const pair of pairs) {
+      const { bodyA, bodyB } = pair;
+
+      const componentA = physics.getComponentFromBody(bodyA);
+      const componentB = physics.getComponentFromBody(bodyB);
+
+      if (componentA && componentB) {
+        componentA._collidingWith.delete(componentB);
+        componentB._collidingWith.delete(componentA);
+
+        componentA.entity.components.forEach((component) => {
+          if (component.onCollisionEnd2D) {
+            component.onCollisionEnd2D(componentB);
+          }
+        });
+
+        componentB.entity.components.forEach((component) => {
+          if (component.onCollisionEnd2D) {
+            component.onCollisionEnd2D(componentA);
+          }
+        });
+      } else {
+        console.warn("Collision between unknown bodies");
+      }
+    }
+  });
 }

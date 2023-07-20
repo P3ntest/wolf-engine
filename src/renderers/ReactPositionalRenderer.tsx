@@ -19,7 +19,7 @@ export class ReactPositionalRenderer extends System {
     this.backgroundColor = backgroundColor;
   }
   onUpdate({ deltaTime, scene }: SystemUpdateProps) {
-    const fps = this.fpsCounter.update();
+    const fps = this.fpsCounter.update().getFpsAverage();
 
     this.root.render(
       <Screen scene={scene} backgroundColor={this.backgroundColor} fps={fps} />

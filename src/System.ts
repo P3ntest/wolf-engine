@@ -7,7 +7,11 @@ export interface SystemUpdateProps extends UpdateProps {
   entities: Entity[];
 }
 
-export abstract class System {
+export interface SystemMethods<T extends System = System> {
+  onUpdate?(this: T, props: SystemUpdateProps): void;
+}
+
+export abstract class System implements Partial<SystemMethods> {
   _scene?: Scene;
   get scene() {
     if (!this._scene) {
@@ -16,17 +20,24 @@ export abstract class System {
     return this._scene;
   }
   onUpdate?(props: SystemUpdateProps): void;
+
+  static fromMethods<Context = {}>(
+    methods: Partial<SystemMethods<MethodSystem<Context>>>
+  ): System {
+    return new MethodSystem<Context>(methods);
+  }
 }
 
-export type SystemUpdateFn = (props: SystemUpdateProps) => void;
-export class BasicSystem extends System {
-  updateFn: SystemUpdateFn;
-  constructor(updateFn: SystemUpdateFn) {
-    super();
-    this.updateFn = updateFn;
-  }
+export class MethodSystem<Context> extends System {
+  context: Context = {} as Context;
 
-  onUpdate(props: SystemUpdateProps) {
-    this.updateFn(props);
+  constructor(public methods: Partial<SystemMethods<MethodSystem<Context>>>) {
+    super();
+    for (const methodName in methods) {
+      if (Object.prototype.hasOwnProperty.call(methods, methodName)) {
+        (this[methodName as keyof SystemMethods] as any) =
+          methods[methodName as keyof SystemMethods];
+      }
+    }
   }
 }
