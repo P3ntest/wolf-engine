@@ -37,6 +37,7 @@ export function DebugDropdown({ children }: { children: React.ReactNode }) {
             padding: "1em",
             height: "80vh",
             overflow: "scroll",
+            zIndex: 10000,
           }}
         >
           {children}
@@ -47,6 +48,7 @@ export function DebugDropdown({ children }: { children: React.ReactNode }) {
           position: "fixed",
           top: 0,
           right: 0,
+          zIndex: 10000,
         }}
         onClick={() => setOpen(!open)}
       >

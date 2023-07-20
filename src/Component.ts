@@ -21,6 +21,21 @@ interface ComponentMethods<T extends Component = Component> {
 
 export abstract class Component implements Partial<ComponentMethods> {
   _entity: Entity | null = null;
+
+  _attached = false;
+
+  _doUpdate(props: ComponentUpdateProps) {
+    if (!this._attached) {
+      this._attached = true;
+      if (this.onAttach) {
+        this.onAttach();
+      }
+    }
+    if (this.onUpdate) {
+      this.onUpdate(props);
+    }
+  }
+
   get entity(): Entity {
     if (!this._entity) {
       throw new Error("Component not attached to entity");
@@ -37,7 +52,9 @@ export abstract class Component implements Partial<ComponentMethods> {
   onDestroy?(): void;
 
   static fromMethods<Context = {}>(
-    methods: Partial<ComponentMethods<MethodComponent<Context>>>
+    methods: Partial<ComponentMethods<MethodComponent<Context>>> & {
+      setupContext?: (this: MethodComponent<Context>) => void;
+    }
   ): Component {
     return new MethodComponent<Context>(methods);
   }
@@ -46,7 +63,9 @@ export abstract class Component implements Partial<ComponentMethods> {
 class MethodComponent<Context> extends Component {
   context: Context = {} as Context;
   constructor(
-    public methods: Partial<ComponentMethods<MethodComponent<Context>>>
+    public methods: Partial<ComponentMethods<MethodComponent<Context>>> & {
+      setupContext?: (this: MethodComponent<Context>) => void;
+    }
   ) {
     super();
 
@@ -59,9 +78,8 @@ class MethodComponent<Context> extends Component {
       }
     }
 
-    // this.onAttach = methods.onAttach;
-    // this.onUpdate = methods.onUpdate;
-    // this.renderDebug = methods.renderDebug;
-    // this.onCollisionStart2D = methods.onCollisionStart2D;
+    if (methods.setupContext) {
+      methods.setupContext.call(this);
+    }
   }
 }

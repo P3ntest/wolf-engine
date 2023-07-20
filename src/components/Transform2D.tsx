@@ -14,8 +14,7 @@ export class Transform2D extends Component {
 
   setPosition(vector: Vector2) {
     if (this.entity.hasComponent(RigidBody2D)) {
-      const rb = this.entity.requireComponent(RigidBody2D).setPosition(vector);
-      return;
+      this.entity.requireComponent(RigidBody2D).setPosition(vector);
     }
     this._localPosition.x = vector.x;
     this._localPosition.y = vector.y;
@@ -23,26 +22,21 @@ export class Transform2D extends Component {
 
   setRotation(rotation: number) {
     if (this.entity.hasComponent(RigidBody2D)) {
-      const rb = this.entity
-        .requireComponent(RigidBody2D)
-        .setRotation(rotation);
-      return;
+      this.entity.requireComponent(RigidBody2D).setRotation(rotation);
     }
     this.localRotation = rotation;
   }
 
   rotate(rotation: number) {
     if (this.entity.hasComponent(RigidBody2D)) {
-      const rb = this.entity.requireComponent(RigidBody2D).rotate(rotation);
-      return;
+      this.entity.requireComponent(RigidBody2D).rotate(rotation);
     }
     this.localRotation += rotation;
   }
 
   translate(vector: Vector2) {
     if (this.entity.hasComponent(RigidBody2D)) {
-      const rb = this.entity.requireComponent(RigidBody2D).translate(vector);
-      return;
+      this.entity.requireComponent(RigidBody2D).translate(vector);
     }
     this._localPosition = this._localPosition.add(vector);
   }
@@ -140,6 +134,11 @@ export class Transform2D extends Component {
             </tr>
           </tbody>
         </table>
+        Global Rotation
+        <span>{this.getGlobalRotation().toFixed(3)} rad</span>
+        <br />
+        Local Rotation
+        <span>{this.localRotation.toFixed(3)} rad</span>
       </div>
     );
   }

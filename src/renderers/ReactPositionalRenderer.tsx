@@ -7,9 +7,32 @@ import { Vector2 } from "../utils/vector";
 import { Transform2D } from "../components/Transform2D";
 import { FpsCounter } from "../utils/fps";
 
-export class ReactPositionalRenderer extends System {
+export interface WorldRenderer extends System {
+  transformScreenToWorld(screenPosition: Vector2): Vector2;
+}
+
+export class ReactPositionalRenderer extends System implements WorldRenderer {
   root: Root;
   backgroundColor: string;
+
+  transformScreenToWorld(screenPosition: Vector2): Vector2 {
+    const camera = this.scene.getAllEntities().find((entity) => {
+      return entity.hasComponent(ReactPositionalCamera);
+    });
+
+    const camPos =
+      camera?.getComponent(Transform2D)?.getGlobalPosition() ?? new Vector2();
+    const camRot = camera?.getComponent(Transform2D)?.getGlobalRotation() ?? 0;
+
+    const screenVec = new Vector2(window.innerWidth, window.innerHeight)
+      .multiplyScalar(0.5)
+      .rotate(camRot);
+
+    camPos.x -= screenVec.x;
+    camPos.y -= screenVec.y;
+
+    return screenPosition.add(camPos).rotate(camRot);
+  }
 
   fpsCounter: FpsCounter = new FpsCounter();
 
@@ -72,6 +95,7 @@ function Screen({
           color: "white",
           backgroundColor: "black",
           padding: "0.5em",
+          zIndex: 10000,
         }}
       >
         FPS: {fps} Entities: {scene.getAllEntities().length}
@@ -119,6 +143,7 @@ function EntitiesRenderer({
               top: position.y,
               left: position.x,
               transform: `translate(-50%, -50%)`,
+              zIndex: component.layer,
             }}
           >
             <div
@@ -137,9 +162,11 @@ function EntitiesRenderer({
 
 export class ReactRenderedComponent extends Component {
   _renderFn: undefined | (() => JSX.Element | string | null);
+  layer: number;
 
-  constructor(renderFn?: () => JSX.Element | string | null) {
+  constructor(renderFn?: () => JSX.Element | string | null, layer: number = 0) {
     super();
+    this.layer = layer;
     this._renderFn = renderFn;
   }
 

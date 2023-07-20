@@ -1,3 +1,5 @@
+import { WorldRenderer } from "./renderers/ReactPositionalRenderer";
+
 export class Input {
   static instance = new Input();
 
@@ -44,6 +46,33 @@ export class Input {
 
       Input.instance.keys.set(e.key, false);
     });
+
+    window.addEventListener("mousedown", () => {
+      if (!Input.instance.keys.get("mouse0")) {
+        Input.instance.keyDowns.push("mouse0");
+      }
+      Input.instance.keys.set("mouse0", true);
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (Input.instance.keys.get("mouse0")) {
+        Input.instance.keyUps.push("mouse0");
+      }
+      Input.instance.keys.set("mouse0", false);
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      Input.instance.mousePosition = {
+        x: e.clientX,
+        y: e.clientY,
+      };
+    });
+  }
+
+  mousePosition: { x: number; y: number } = { x: 0, y: 0 };
+
+  static getMousePosition(): { x: number; y: number } {
+    return Input.instance.mousePosition;
   }
 
   keys = new Map<string, boolean>();

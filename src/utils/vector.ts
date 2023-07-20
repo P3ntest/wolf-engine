@@ -47,4 +47,48 @@ export class Vector2 {
   multiplyScalar(scalar: number) {
     return new Vector2(this.x * scalar, this.y * scalar);
   }
+
+  lerp(vector: Vector2, alpha: number) {
+    return this.multiplyScalar(1 - alpha).add(vector.multiplyScalar(alpha));
+  }
+
+  static UP = new Vector2(0, -1);
+
+  dot(vector: Vector2) {
+    return this.x * vector.x + this.y * vector.y;
+  }
+
+  cross(vector: Vector2) {
+    return this.x * vector.y - this.y * vector.x;
+  }
+
+  getAngle() {
+    // Angle from the Y axis
+    return Math.atan2(this.x, -this.y);
+  }
+
+  static fromAngle(angle: number) {
+    return new Vector2(Math.sin(angle), -Math.cos(angle));
+  }
+
+  getDeltaAngle(other: Vector2 = Vector2.UP) {
+    var va = this.normalize();
+    var vb = other.normalize();
+    var dot = va.dot(vb);
+    var cross = vb.cross(va);
+    var rad = Math.acos(dot);
+
+    if (cross >= 0) {
+      cross = 1;
+    }
+    if (cross < 0) {
+      cross = -1;
+    }
+
+    return rad * cross;
+  }
+
+  static fromObject(object: { x: number; y: number }) {
+    return new Vector2(object.x, object.y);
+  }
 }

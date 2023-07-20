@@ -17,8 +17,8 @@ export class RigidBody2D extends Component {
     return Array.from(this._collidingWith);
   }
 
-  applyForce(vector: Vector2) {
-    Body.applyForce(this.body, this.body.position, vector);
+  applyForce(vector: Vector2, point?: Vector2) {
+    Body.applyForce(this.body, point ?? this.body.position, vector);
   }
 
   translate(vector: Vector2) {
@@ -38,6 +38,14 @@ export class RigidBody2D extends Component {
   }
 
   rotate(rotation: number) {
-    Body.rotate(this.body, rotation);
+    Body.setAngle(this.body, (this.body.angle + rotation) % (Math.PI * 2));
+  }
+
+  getVelocity(): Vector2 {
+    return new Vector2(this.body.velocity.x, this.body.velocity.y);
+  }
+
+  getSpeed(): number {
+    return this.body.speed;
   }
 }

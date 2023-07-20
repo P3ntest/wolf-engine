@@ -5,6 +5,10 @@ import { ComponentId } from "../Component";
 import { Transform2D } from "../components/Transform2D";
 import { Scene } from "../Scene";
 
+interface PhysicsProps {
+  gravity: boolean;
+}
+
 export class Physics2D extends System {
   engine: Engine;
 
@@ -18,9 +22,13 @@ export class Physics2D extends System {
     return null;
   }
 
-  constructor() {
+  constructor(props: PhysicsProps = { gravity: true }) {
     super();
     this.engine = Engine.create();
+
+    if (!props.gravity) {
+      this.engine.gravity.scale = 0;
+    }
 
     registerEngineEvents(this.engine, this);
 
@@ -111,8 +119,6 @@ function registerEngineEvents(engine: Engine, physics: Physics2D) {
             component.onCollisionStart2D(componentA);
           }
         });
-      } else {
-        console.warn("Collision between unknown bodies");
       }
     }
   });
@@ -141,8 +147,6 @@ function registerEngineEvents(engine: Engine, physics: Physics2D) {
             component.onCollisionEnd2D(componentA);
           }
         });
-      } else {
-        console.warn("Collision between unknown bodies");
       }
     }
   });

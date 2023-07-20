@@ -1,9 +1,11 @@
+import { WorldRenderer } from "./renderers/ReactPositionalRenderer";
 import { Component, ComponentId } from "./Component";
-import { Entity } from "./Entity";
+import { Entity, EntityParent } from "./Entity";
 import { Input } from "./Input";
 import { System } from "./System";
 import { Ticker, UpdateProps } from "./Ticker";
-export class Scene {
+import { World } from "matter-js";
+export class Scene implements EntityParent {
   private renderers: System[] = [];
 
   private entities: Entity[] = [];
@@ -18,7 +20,7 @@ export class Scene {
     const entities: Entity[] = [];
     entities.push(...this.entities);
     entities.forEach((entity) => {
-      entities.push(...entity.getAllChildren());
+      entities.push(...entity.getAllEntities());
     });
 
     return entities;
@@ -52,6 +54,25 @@ export class Scene {
     Input.instance._resetFrame();
   }
 
+  getSystem<T extends System>(
+    systemClass: new (...args: any[]) => T
+  ): T | null {
+    for (const system of this.systems) {
+      if (system instanceof systemClass) {
+        return system;
+      }
+    }
+    return null;
+  }
+
+  requireSystem<T extends System>(systemClass: new (...args: any[]) => T): T {
+    const system = this.getSystem(systemClass);
+    if (!system) {
+      throw new Error(`System ${systemClass.name} not found`);
+    }
+    return system;
+  }
+
   getComponentById(id: ComponentId): Component | null {
     for (const entity of this.getAllEntities()) {
       for (const component of entity.components) {
@@ -66,6 +87,22 @@ export class Scene {
   addSystem(system: System) {
     system._scene = this;
     this.systems.push(system);
+  }
+
+  _worldRenderer: WorldRenderer | null = null;
+
+  get worldRenderer(): WorldRenderer {
+    if (!this._worldRenderer) {
+      throw new Error("WorldRenderer not set");
+    }
+    return this._worldRenderer;
+  }
+
+  setWorldRenderer(renderer: WorldRenderer) {
+    if (!this.renderers.includes(renderer)) {
+      this.addRenderer(renderer);
+    }
+    this._worldRenderer = renderer;
   }
 
   addRenderer(renderer: System) {
@@ -87,7 +124,6 @@ export class Scene {
 
   private addEntity(entity: Entity) {
     this.entities.push(entity);
-    entity._onAttach();
     entity._parent = this;
   }
 }

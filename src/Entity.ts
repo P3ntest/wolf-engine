@@ -8,13 +8,25 @@ function genEntityId(): EntityId {
   return `e_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+export interface EntityParent {
+  createEntity(): Entity;
+  getAllEntities(): Entity[];
+}
+
 export interface EntityUpdateProps extends UpdateProps {}
 
-export class Entity {
+export class Entity implements EntityParent {
   components: Component[] = [];
   id: EntityId = genEntityId();
 
   children: Entity[] = [];
+
+  get scene(): Scene {
+    if (this.parent instanceof Scene) {
+      return this.parent;
+    }
+    return this.parent.scene;
+  }
 
   private tags: Set<string> = new Set();
 
@@ -46,19 +58,17 @@ export class Entity {
     return child;
   }
 
-  getAllChildren(): Entity[] {
+  getAllEntities(): Entity[] {
     const children = [...this.children];
     this.children.forEach((child) => {
-      children.push(...child.getAllChildren());
+      children.push(...child.getAllEntities());
     });
     return children;
   }
 
   update(props: EntityUpdateProps) {
     this.components.forEach((component) => {
-      if (component.onUpdate) {
-        component.onUpdate(props);
-      }
+      component._doUpdate(props);
     });
 
     this.children.forEach((child) => {
@@ -68,7 +78,7 @@ export class Entity {
 
   private addEntity(entity: Entity) {
     entity._parent = this;
-    entity._onAttach();
+    if (this._parent) entity._onAttach();
     this.children.push(entity);
   }
 
@@ -115,6 +125,10 @@ export class Entity {
       if (component.onAttach) {
         component.onAttach();
       }
+    });
+
+    this.children.forEach((child) => {
+      child._onAttach();
     });
   }
 
