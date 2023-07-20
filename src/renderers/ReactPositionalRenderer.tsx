@@ -5,18 +5,24 @@ import { Entity } from "../Entity";
 import { Component } from "../Component";
 import { Vector2 } from "../utils/vector";
 import { Transform2D } from "../components/Transform2D";
+import { FpsCounter } from "../utils/fps";
 
 export class ReactPositionalRenderer extends System {
   root: Root;
   backgroundColor: string;
+
+  fpsCounter: FpsCounter = new FpsCounter();
+
   constructor(htmlElement: HTMLElement, backgroundColor: string = "#CCCCAA") {
     super();
     this.root = createRoot(htmlElement);
     this.backgroundColor = backgroundColor;
   }
   onUpdate({ deltaTime, scene }: SystemUpdateProps) {
+    const fps = this.fpsCounter.update();
+
     this.root.render(
-      <Screen scene={scene} backgroundColor={this.backgroundColor} />
+      <Screen scene={scene} backgroundColor={this.backgroundColor} fps={fps} />
     );
   }
 }
@@ -24,9 +30,11 @@ export class ReactPositionalRenderer extends System {
 function Screen({
   scene,
   backgroundColor,
+  fps,
 }: {
   scene: Scene;
   backgroundColor: string;
+  fps: number;
 }) {
   // Find the camera
   const camera = scene.getAllEntities().find((entity) => {
@@ -56,6 +64,18 @@ function Screen({
         backgroundColor,
       }}
     >
+      <span
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          color: "white",
+          backgroundColor: "black",
+          padding: "0.5em",
+        }}
+      >
+        FPS: {fps} Entities: {scene.getAllEntities().length}
+      </span>
       <EntitiesRenderer
         camPos={camPos}
         camRot={camRot}
