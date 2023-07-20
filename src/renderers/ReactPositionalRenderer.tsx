@@ -123,38 +123,40 @@ function EntitiesRenderer({
   return (
     <>
       {entities.map((entity) => {
-        const component = entity.getComponent(ReactRenderedComponent)!;
-        const localPosition: Vector2 =
-          entity.getComponent(Transform2D)?.getGlobalPosition() ??
-          new Vector2();
+        const components = entity.getComponents(ReactRenderedComponent);
+        return components.map((component) => {
+          const localPosition: Vector2 =
+            entity.getComponent(Transform2D)?.getGlobalPosition() ??
+            new Vector2();
 
-        const localRotation: number =
-          entity.getComponent(Transform2D)?.getGlobalRotation() ?? 0;
+          const localRotation: number =
+            entity.getComponent(Transform2D)?.getGlobalRotation() ?? 0;
 
-        // Get the position relative to the camera
-        const position = localPosition.subtract(camPos).rotate(-camRot);
-        const rotation = localRotation - camRot;
+          // Get the position relative to the camera
+          const position = localPosition.subtract(camPos).rotate(-camRot);
+          const rotation = localRotation - camRot;
 
-        return (
-          <div
-            key={entity.id}
-            style={{
-              position: "absolute",
-              top: position.y,
-              left: position.x,
-              transform: `translate(-50%, -50%)`,
-              zIndex: component.layer,
-            }}
-          >
+          return (
             <div
+              key={component.id}
               style={{
-                transform: `rotate(${rotation}rad)`,
+                position: "absolute",
+                top: position.y,
+                left: position.x,
+                transform: `translate(-50%, -50%)`,
+                zIndex: component.layer,
               }}
             >
-              {component.renderHtml()}
+              <div
+                style={{
+                  transform: `rotate(${rotation}rad)`,
+                }}
+              >
+                {component.renderHtml()}
+              </div>
             </div>
-          </div>
-        );
+          );
+        });
       })}
     </>
   );

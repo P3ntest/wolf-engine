@@ -5,6 +5,7 @@ import { Input } from "./Input";
 import { System } from "./System";
 import { Ticker, UpdateProps } from "./Ticker";
 import { World } from "matter-js";
+import { WolfPerformance } from "./Performance";
 export class Scene implements EntityParent {
   private renderers: System[] = [];
 
@@ -27,6 +28,8 @@ export class Scene implements EntityParent {
   }
 
   private loop({ deltaTime }: UpdateProps) {
+    WolfPerformance.start("scene");
+    WolfPerformance.start("system-update");
     this.systems.forEach((system) => {
       if (system.onUpdate) {
         system.onUpdate({
@@ -36,11 +39,15 @@ export class Scene implements EntityParent {
         });
       }
     });
+    WolfPerformance.end("system-update");
 
+    WolfPerformance.start("entity-update");
     this.entities.forEach((entity) => {
       entity.update({ deltaTime });
     });
+    WolfPerformance.end("entity-update");
 
+    WolfPerformance.start("rendering");
     this.renderers.forEach((renderer) => {
       if (renderer.onUpdate) {
         renderer.onUpdate({
@@ -50,8 +57,24 @@ export class Scene implements EntityParent {
         });
       }
     });
+    WolfPerformance.end("rendering");
 
     Input.instance._resetFrame();
+    WolfPerformance.end("scene");
+  }
+
+  getEntityByTag(tag: string): Entity | null {
+    const entities = this.getEntitiesByTag(tag);
+    if (entities.length > 1) {
+      console.warn(
+        `Multiple entities with tag ${tag} found in scene during getEntityByTag call`
+      );
+    }
+    return entities[0] || null;
+  }
+
+  getEntitiesByTag(tag: string): Entity[] {
+    return this.entities.filter((entity) => entity.hasTag(tag));
   }
 
   getSystem<T extends System>(

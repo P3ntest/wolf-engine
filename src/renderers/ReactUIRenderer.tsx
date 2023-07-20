@@ -34,52 +34,54 @@ function UIScreen({ scene }: { scene: Scene }) {
       }}
     >
       {entities.map((entity) => {
-        const uiComponent = entity.requireComponent(ReactUIComponent);
-        const position = uiComponent.position;
+        const uiComponents = entity.getComponents(ReactUIComponent);
+        return uiComponents.map((uiComponent) => {
+          const position = uiComponent.position;
 
-        const anchor = position.anchor.split("-");
+          const anchor = (position.anchor ?? "top-left").split("-");
 
-        const anchorX = anchor[1];
-        const anchorY = anchor[0];
+          const anchorX = anchor[1];
+          const anchorY = anchor[0];
 
-        const offset = position.offset;
+          const offset = position.offset;
 
-        const offsetLeft = offset.x;
-        const offsetTop = offset.y;
+          const offsetLeft = offset?.x ?? 0;
+          const offsetTop = offset?.y ?? 0;
 
-        const left = `${offsetLeft}px`;
-        const top = `${offsetTop}px`;
+          const left = `${offsetLeft}px`;
+          const top = `${offsetTop}px`;
 
-        const transform = `translate(${left}, ${top})`;
+          const transform = `translate(${left}, ${top})`;
 
-        return (
-          <div
-            key={entity.id}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: "flex",
-              justifyContent:
-                anchorX === "center"
-                  ? "center"
-                  : anchorX === "left"
-                  ? "flex-start"
-                  : "flex-end",
-              alignItems:
-                anchorY === "center"
-                  ? "center"
-                  : anchorY === "top"
-                  ? "flex-start"
-                  : "flex-end",
-              transform,
-            }}
-          >
-            {uiComponent.renderHtml()}
-          </div>
-        );
+          return (
+            <div
+              key={entity.id}
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: "flex",
+                justifyContent:
+                  anchorX === "center"
+                    ? "center"
+                    : anchorX === "left"
+                    ? "flex-start"
+                    : "flex-end",
+                alignItems:
+                  anchorY === "center"
+                    ? "center"
+                    : anchorY === "top"
+                    ? "flex-start"
+                    : "flex-end",
+                transform,
+              }}
+            >
+              {uiComponent.renderHtml()}
+            </div>
+          );
+        });
       })}
     </div>
   );
@@ -90,8 +92,8 @@ type HorizontalPosition = "left" | "right" | "center";
 type Position = `${VerticalPosition}-${HorizontalPosition}`;
 
 interface UIPosition {
-  anchor: Position;
-  offset: Vector2;
+  anchor?: Position;
+  offset?: Vector2;
 }
 
 type renderFn = (this: ReactUIComponent) => JSX.Element | string | null;

@@ -4,6 +4,7 @@ import { RigidBody2D } from "../components/RigidBody2D";
 import { ComponentId } from "../Component";
 import { Transform2D } from "../components/Transform2D";
 import { Scene } from "../Scene";
+import { WolfPerformance } from "../Performance";
 
 interface PhysicsProps {
   gravity: boolean;
@@ -42,56 +43,50 @@ export class Physics2D extends System {
 
   bodies: Map<ComponentId, Matter.Body> = new Map();
 
+  _addBody(component: ComponentId, body: Matter.Body) {
+    this.bodies.set(component, body);
+    Composite.add(this.engine.world, body);
+  }
+
+  _removeBody(component: ComponentId) {
+    const body = this.bodies.get(component);
+    if (body) {
+      Composite.remove(this.engine.world, body);
+      this.bodies.delete(component);
+    }
+  }
+
+  _lastPhysicsUpdate = 0;
+
   onUpdate({ deltaTime, entities }: SystemUpdateProps) {
+    WolfPerformance.start("physics");
+
+    WolfPerformance.start("rigid-body-linking");
     const rigidBodies = entities.filter((entity) =>
       entity.hasComponent(RigidBody2D)
     );
 
-    // Make sure all rigid bodies have a body
-    rigidBodies.forEach((entity) => {
-      const rigidBody = entity.requireComponent(RigidBody2D);
-      if (!this.bodies.has(rigidBody.id)) {
-        this.bodies.set(rigidBody.id, rigidBody.body);
-        Composite.add(this.engine.world, rigidBody.body);
-      }
-    });
+    WolfPerformance.end("rigid-body-linking");
 
-    // Remove bodies that no longer have a rigid body
-    this.bodies.forEach((body, id) => {
-      if (
-        !rigidBodies.some(
-          (entity) => entity.requireComponent(RigidBody2D).id === id
-        )
-      ) {
-        Composite.remove(this.engine.world, body);
-        this.bodies.delete(id);
-      }
-    });
-
-    // Patch position of rigid bodies to match Transform
-    // rigidBodies.forEach((entity) => {
-    //   const rigidBody = entity.requireComponent(RigidBody2D);
-    //   const transform = entity.requireComponent(Transform2D);
-    //   const { x, y } = transform.getGlobalPosition();
-    //   const angle = transform.getGlobalRotation();
-    //   const body = this.bodies.get(rigidBody.id)!;
-
-    //   Body.setAngle(body, angle);
-    //   Body.setPosition(body, { x, y });
-    // });
-
+    // Only update physics at 30fps
+    WolfPerformance.start("engine-update");
     Engine.update(this.engine, deltaTime);
+    WolfPerformance.end("engine-update");
 
     // Patch position of Transform to match rigid bodies
+    WolfPerformance.start("transform-patching");
     rigidBodies.forEach((entity) => {
       const rigidBody = entity.requireComponent(RigidBody2D);
       const transform = entity.requireComponent(Transform2D);
-      const body = this.bodies.get(rigidBody.id)!;
+      const body = this.bodies.get(rigidBody.id);
+      if (!body) return;
       const { x, y } = body.position;
       const angle = body.angle;
       transform.setGlobalPosition(x, y);
       transform.setGlobalRotation(angle);
     });
+    WolfPerformance.end("transform-patching");
+    WolfPerformance.end("physics");
   }
 }
 

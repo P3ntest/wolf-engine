@@ -1,6 +1,7 @@
 import { Bodies, Body } from "matter-js";
 import { Component } from "../Component";
 import { Vector2 } from "../utils/vector";
+import { Physics2D } from "../physics/Physics2D";
 
 export class RigidBody2D extends Component {
   body: Matter.Body;
@@ -11,6 +12,14 @@ export class RigidBody2D extends Component {
     super();
 
     this.body = body;
+  }
+
+  onAttach(): void {
+    this.entity.scene.getSystem(Physics2D)?._addBody(this.id, this.body);
+  }
+
+  onDestroy(): void {
+    this.entity.scene.getSystem(Physics2D)?._removeBody(this.id);
   }
 
   getCollidingWith(): RigidBody2D[] {
