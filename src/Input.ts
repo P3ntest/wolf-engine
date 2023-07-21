@@ -1,5 +1,3 @@
-import { WorldRenderer } from "./renderers/ReactPositionalRenderer";
-
 export class Input {
   static instance = new Input();
 
@@ -72,6 +70,17 @@ export class Input {
     window.addEventListener("contextmenu", (e) => {
       e.preventDefault();
     });
+
+    window.addEventListener("wheel", (e) => {
+      const direction = e.deltaY > 0 ? 1 : -1;
+      if (direction > 0) {
+        Input.instance.keyDowns.push("scrollDown");
+        Input.instance.keys.set("scrollDown", true);
+      } else {
+        Input.instance.keyDowns.push("scrollUp");
+        Input.instance.keys.set("scrollUp", true);
+      }
+    });
   }
 
   mousePosition: { x: number; y: number } = { x: 0, y: 0 };
@@ -88,6 +97,10 @@ export class Input {
   _resetFrame() {
     this.keyDowns = [];
     this.keyUps = [];
+
+    // filter scroll keys out
+    this.keys.set("scrollDown", false);
+    this.keys.set("scrollUp", false);
   }
 
   axes: Axis[] = [];
@@ -96,7 +109,9 @@ export class Input {
     const axis = Input.instance.axes.find((a) => a.name === axisName);
 
     if (!axis) {
-      throw new Error(`Axis ${axisName} not found`);
+      throw new Error(
+        `Axis ${axisName} not found. Have you initialized input?`
+      );
     }
 
     let value = 0;

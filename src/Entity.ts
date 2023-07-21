@@ -1,6 +1,8 @@
 import { Component } from "./Component";
 import { Scene } from "./Scene";
 import { UpdateProps } from "./Ticker";
+import { RigidBody2D } from "./components/RigidBody2D";
+import { Transform2D } from "./components/Transform2D";
 export type EntityId = `e_${string}`;
 
 function genEntityId(): EntityId {
@@ -10,6 +12,7 @@ function genEntityId(): EntityId {
 export interface EntityParent {
   attachEntity(entity: Entity): void;
   getAllEntities(): Entity[];
+  _removeEntity(entity: Entity): void;
 }
 
 export interface EntityUpdateProps extends UpdateProps {}
@@ -23,8 +26,7 @@ export class Entity implements EntityParent {
   get scene(): Scene {
     if (this.parent instanceof Scene) {
       return this.parent;
-    }
-    return this.parent.scene;
+    } else return (this.parent as Entity).scene;
   }
 
   private tags: Set<string> = new Set();
@@ -43,8 +45,8 @@ export class Entity implements EntityParent {
     return this.tags.has(tag);
   }
 
-  _parent: Entity | Scene | null = null;
-  get parent(): Entity | Scene {
+  _parent: EntityParent | null = null;
+  get parent(): EntityParent {
     if (!this._parent) {
       throw new Error("Entity not attached to parent");
     }
@@ -75,7 +77,7 @@ export class Entity implements EntityParent {
 
   private _addEntity(entity: Entity) {
     entity._parent = this;
-    if (this._attached) entity._onAttach();
+    if (this._attached) entity._onAttach(this);
     this.children.push(entity);
   }
 
@@ -125,19 +127,29 @@ export class Entity implements EntityParent {
 
   _attached = false;
 
-  _onAttach() {
+  _onAttach(parent: EntityParent) {
+    if (this._attached) throw new Error("Entity already attached");
     this._attached = true;
-    this.components.forEach((component) => {
+    this._parent = parent;
+
+    const components = [...this.components];
+    this.components = [];
+
+    components.forEach((component) => {
+      this.components.push(component);
       component._attach(this);
-    });
-    this.components.forEach((component) => {
       if (component.onAttach) {
         component.onAttach();
       }
     });
+    // components.forEach((component) => {
+    //   if (component.onAttach) {
+    //     component.onAttach();
+    //   }
+    // });
 
     this.children.forEach((child) => {
-      child._onAttach();
+      child._onAttach(this);
     });
   }
 
@@ -166,6 +178,19 @@ export class Entity implements EntityParent {
     componentType: ComponentConstructor<T>
   ): T[] {
     return this.components.filter((c) => c instanceof componentType) as T[];
+  }
+
+  _transform2D: Transform2D | null = null;
+  get transform2D() {
+    if (this._transform2D) return this._transform2D;
+    this._transform2D = this.requireComponent(Transform2D);
+    return this._transform2D;
+  }
+  _rigidBody2D: RigidBody2D | null = null;
+  get rigidBody2D() {
+    if (this._rigidBody2D) return this._rigidBody2D;
+    this._rigidBody2D = this.requireComponent(RigidBody2D);
+    return this._rigidBody2D;
   }
 }
 

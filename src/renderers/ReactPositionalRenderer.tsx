@@ -6,12 +6,9 @@ import { Component } from "../Component";
 import { Vector2 } from "../utils/vector";
 import { Transform2D } from "../components/Transform2D";
 import { FpsCounter } from "../utils/fps";
+import { Renderer } from "./Renderer";
 
-export interface WorldRenderer extends System {
-  transformScreenToWorld(screenPosition: Vector2): Vector2;
-}
-
-export class ReactPositionalRenderer extends System implements WorldRenderer {
+export class ReactPositionalRenderer extends Renderer {
   root: Root;
   backgroundColor: string;
 
@@ -39,7 +36,7 @@ export class ReactPositionalRenderer extends System implements WorldRenderer {
     this.root = createRoot(htmlElement);
     this.backgroundColor = backgroundColor;
   }
-  onUpdate({ deltaTime, scene }: SystemUpdateProps) {
+  draw({ deltaTime, scene }: SystemUpdateProps) {
     this.root.render(
       <Screen scene={scene} backgroundColor={this.backgroundColor} />
     );
@@ -61,13 +58,22 @@ function Screen({
   const camPos =
     camera?.getComponent(Transform2D)?.getGlobalPosition() ?? new Vector2();
   const camRot = camera?.getComponent(Transform2D)?.getGlobalRotation() ?? 0;
+  const cameraZoom = camera?.getComponent(ReactPositionalCamera)?.zoom ?? 1;
 
-  const screenVec = new Vector2(window.innerWidth, window.innerHeight)
-    .multiplyScalar(0.5)
-    .rotate(camRot);
+  const camPosZoomed = camPos.multiplyScalar(cameraZoom);
 
-  camPos.x -= screenVec.x;
-  camPos.y -= screenVec.y;
+  const getScreenPosition = (worldPosition: Vector2): Vector2 => {
+    const zoomedPos = worldPosition.multiplyScalar(cameraZoom);
+    const relativePos = zoomedPos.subtract(camPosZoomed).rotate(-camRot);
+
+    const screenVec = new Vector2(
+      window.innerWidth,
+      window.innerHeight
+    ).multiplyScalar(0.5);
+    // .rotate(-camRot);
+
+    return relativePos.add(screenVec);
+  };
 
   return (
     <div
@@ -82,8 +88,9 @@ function Screen({
       }}
     >
       <EntitiesRenderer
-        camPos={camPos}
-        camRot={camRot}
+        getScreenPosition={getScreenPosition}
+        cameraRotation={camRot}
+        zoom={cameraZoom}
         entities={scene
           .getAllEntities()
           .filter((e) => e.hasComponent(ReactRenderedComponent))}
@@ -94,43 +101,45 @@ function Screen({
 
 function EntitiesRenderer({
   entities,
-  camRot,
-  camPos,
+  getScreenPosition,
+  cameraRotation,
+  zoom,
 }: {
   entities: Entity[];
-  camRot: number;
-  camPos: Vector2;
+  cameraRotation: number;
+  getScreenPosition: (worldPosition: Vector2) => Vector2;
+  zoom: number;
 }) {
   return (
     <>
       {entities.map((entity) => {
         const components = entity.getComponents(ReactRenderedComponent);
         return components.map((component) => {
-          const localPosition: Vector2 =
+          const worldPosition: Vector2 =
             entity.getComponent(Transform2D)?.getGlobalPosition() ??
             new Vector2();
 
-          const localRotation: number =
+          const worldRotation: number =
             entity.getComponent(Transform2D)?.getGlobalRotation() ?? 0;
 
           // Get the position relative to the camera
-          const position = localPosition.subtract(camPos).rotate(-camRot);
-          const rotation = localRotation - camRot;
+          const screenPosition = getScreenPosition(worldPosition);
+          const screenRotation = worldRotation - cameraRotation;
 
           return (
             <div
               key={component.id}
               style={{
                 position: "absolute",
-                top: position.y,
-                left: position.x,
-                transform: `translate(-50%, -50%)`,
+                top: screenPosition.y,
+                left: screenPosition.x,
+                transform: `translate(-50%, -50%) scale(${zoom})`,
                 zIndex: component.layer,
               }}
             >
               <div
                 style={{
-                  transform: `rotate(${rotation}rad)`,
+                  transform: `rotate(${screenRotation}rad)`,
                 }}
               >
                 {component.renderHtml()}
@@ -158,4 +167,14 @@ export class ReactRenderedComponent extends Component {
   }
 }
 
-export class ReactPositionalCamera extends Component {}
+export class ReactPositionalCamera extends Component {
+  zoom = 1;
+  constructor(zoom: number = 1) {
+    super();
+    this.zoom = zoom;
+  }
+
+  setZoom(zoom: number) {
+    this.zoom = zoom;
+  }
+}

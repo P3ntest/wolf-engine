@@ -22,33 +22,24 @@ export class Collider2D extends Component {
   }
 
   onDestroy(): void {
-    this._deAttach();
+    this._deAttachCollider();
   }
 
-  _deAttach() {
+  _deAttachCollider() {
     this.scene.worldPhysics.world.removeCollider(this.collider, true);
   }
 
-  _reAttach(): void {
-    this._deAttach();
-    this._attach();
+  _reAttachCollider(): void {
+    this._deAttachCollider();
+    this._attachCollider();
   }
 
-  _attach() {
-    if (this.entity.requireComponent(RigidBody2D)) {
-      const rb = this.entity.requireComponent(RigidBody2D)?.rigidBody;
-      this._collider = this.scene.worldPhysics.world.createCollider(
-        this.colliderDesc,
-        rb
-      );
-    } else {
-      this._collider = this.scene.worldPhysics.world.createCollider(
-        this.colliderDesc
-      );
-    }
+  _attachCollider() {
+    const rb = this.entity.getComponent(RigidBody2D) ?? undefined;
+    this.scene.worldPhysics._registerCollider2D(this, rb);
   }
 
   onAttach(): void {
-    this._attach;
+    this._attachCollider();
   }
 }
