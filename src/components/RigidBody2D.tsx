@@ -1,60 +1,49 @@
-import { Bodies, Body } from "matter-js";
 import { Component } from "../Component";
-import { Vector2 } from "../utils/vector";
-import { Physics2D } from "../physics/Physics2D";
-
+import RAPIER from "@dimforge/rapier2d";
+import { Collider2D } from "./Collider2D";
+import { Transform2D } from "./Transform2D";
 export class RigidBody2D extends Component {
-  body: Matter.Body;
+  rigidBodyDesc: RAPIER.RigidBodyDesc;
+  _rigidBody: RAPIER.RigidBody | null = null;
 
-  _collidingWith: Set<RigidBody2D> = new Set();
-
-  constructor(body: Matter.Body) {
-    super();
-
-    this.body = body;
+  get rigidBody(): RAPIER.RigidBody {
+    if (this._rigidBody === null) {
+      throw new Error("RigidBody2D not attached to world");
+    }
+    return this._rigidBody;
   }
 
-  onAttach(): void {
-    this.entity.scene.getSystem(Physics2D)?._addBody(this.id, this.body);
+  constructor({ fixed }: { fixed?: boolean }) {
+    super();
+    this.rigidBodyDesc = fixed
+      ? RAPIER.RigidBodyDesc.fixed()
+      : RAPIER.RigidBodyDesc.dynamic();
   }
 
   onDestroy(): void {
-    this.entity.scene.getSystem(Physics2D)?._removeBody(this.id);
+    this.scene.worldPhysics.world.removeRigidBody(this.rigidBody);
+    for (const collider of this.entity.getComponents(Collider2D)) {
+      collider._reAttach();
+    }
+    const transform = this.entity.getComponent(Transform2D);
+    if (transform) {
+      transform._rigidBody = null;
+    }
   }
 
-  getCollidingWith(): RigidBody2D[] {
-    return Array.from(this._collidingWith);
-  }
+  onAttach(): void {
+    this._rigidBody = this.scene.worldPhysics.world.createRigidBody(
+      this.rigidBodyDesc
+    );
 
-  applyForce(vector: Vector2, point?: Vector2) {
-    Body.applyForce(this.body, point ?? this.body.position, vector);
-  }
+    const colliders = this.entity.getComponents(Collider2D);
+    for (const collider of colliders) {
+      collider._reAttach();
+    }
 
-  translate(vector: Vector2) {
-    Body.translate(this.body, vector);
-  }
-
-  setVelocity(vector: Vector2) {
-    Body.setVelocity(this.body, vector);
-  }
-
-  setPosition(vector: Vector2) {
-    Body.setPosition(this.body, vector);
-  }
-
-  setRotation(rotation: number) {
-    Body.setAngle(this.body, rotation);
-  }
-
-  rotate(rotation: number) {
-    Body.setAngle(this.body, (this.body.angle + rotation) % (Math.PI * 2));
-  }
-
-  getVelocity(): Vector2 {
-    return new Vector2(this.body.velocity.x, this.body.velocity.y);
-  }
-
-  getSpeed(): number {
-    return this.body.speed;
+    const transform = this.entity.getComponent(Transform2D);
+    if (transform) {
+      transform._rigidBody = this;
+    }
   }
 }

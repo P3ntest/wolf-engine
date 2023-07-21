@@ -1,4 +1,4 @@
-import { Entity } from "./Entity";
+import { ComponentConstructor, Entity } from "./Entity";
 import { UpdateProps } from "./Ticker";
 import { RigidBody2D } from "./components/RigidBody2D";
 
@@ -24,6 +24,10 @@ export abstract class Component implements Partial<ComponentMethods> {
 
   _attached = false;
 
+  get scene() {
+    return this.entity.scene;
+  }
+
   _doUpdate(props: ComponentUpdateProps) {
     if (!this._attached) {
       this._attached = true;
@@ -34,6 +38,11 @@ export abstract class Component implements Partial<ComponentMethods> {
     if (this.onUpdate) {
       this.onUpdate(props);
     }
+  }
+
+  _attach(entity: Entity) {
+    this._entity = entity;
+    this._attached = true;
   }
 
   get entity(): Entity {

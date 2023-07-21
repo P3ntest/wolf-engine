@@ -6,13 +6,14 @@ import { System } from "./System";
 import { Renderer, Ticker, UpdateProps } from "./Ticker";
 import { World } from "matter-js";
 import { WolfPerformance } from "./Performance";
+import { PhysicsSystem } from "./physics/Physics2D";
 export class Scene implements EntityParent {
   private renderers: System[] = [];
 
   private entities: Entity[] = [];
   private systems: System[] = [];
 
-  ticker: Ticker = new Ticker(this.loop.bind(this));
+  ticker: Ticker = new Ticker(this.physicsUpdate.bind(this));
   rendererTicker: Renderer = new Renderer(this.render.bind(this));
   rendering: boolean = false;
 
@@ -58,7 +59,7 @@ export class Scene implements EntityParent {
     return entities;
   }
 
-  private loop({ deltaTime }: UpdateProps) {
+  private physicsUpdate({ deltaTime }: UpdateProps) {
     WolfPerformance.start("scene");
     WolfPerformance.start("system-update");
     for (const system of this.systems) {
@@ -77,6 +78,10 @@ export class Scene implements EntityParent {
       entity.update({ deltaTime });
     }
     WolfPerformance.end("entity-update");
+
+    WolfPerformance.start("physics");
+    this.worldPhysics.world.step();
+    WolfPerformance.end("physics");
 
     Input.instance._resetFrame();
     WolfPerformance.end("scene");
@@ -140,15 +145,15 @@ export class Scene implements EntityParent {
     return this._worldRenderer;
   }
 
-  _worldPhysics: System | null = null;
+  _worldPhysics: PhysicsSystem | null = null;
 
-  get worldPhysics(): System {
+  get worldPhysics(): PhysicsSystem {
     if (!this._worldPhysics) {
       throw new Error("WorldPhysics not set");
     }
     return this._worldPhysics;
   }
-  setWorldPhysics(physics: System) {
+  setWorldPhysics(physics: PhysicsSystem) {
     this.addSystem(physics);
     this._worldPhysics = physics;
   }
@@ -169,16 +174,13 @@ export class Scene implements EntityParent {
     this.entities = this.entities.filter((e) => e !== entity);
   }
 
-  createEntity(): Entity {
-    const entity = new Entity();
-
-    this.addEntity(entity);
-
-    return entity;
+  attachEntity(entity: Entity): void {
+    this._addEntity(entity);
   }
 
-  private addEntity(entity: Entity) {
+  private _addEntity(entity: Entity) {
     this.entities.push(entity);
     entity._parent = this;
+    entity._onAttach();
   }
 }

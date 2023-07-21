@@ -1,7 +1,6 @@
 import { Component } from "./Component";
 import { Scene } from "./Scene";
 import { UpdateProps } from "./Ticker";
-
 export type EntityId = `e_${string}`;
 
 function genEntityId(): EntityId {
@@ -9,7 +8,7 @@ function genEntityId(): EntityId {
 }
 
 export interface EntityParent {
-  createEntity(): Entity;
+  attachEntity(entity: Entity): void;
   getAllEntities(): Entity[];
 }
 
@@ -52,10 +51,8 @@ export class Entity implements EntityParent {
     return this._parent;
   }
 
-  createEntity(): Entity {
-    const child = new Entity();
-    this.addEntity(child);
-    return child;
+  attachEntity(entity: Entity): void {
+    this._addEntity(entity);
   }
 
   getAllEntities(): Entity[] {
@@ -76,9 +73,9 @@ export class Entity implements EntityParent {
     }
   }
 
-  private addEntity(entity: Entity) {
+  private _addEntity(entity: Entity) {
     entity._parent = this;
-    if (this._parent) entity._onAttach();
+    if (this._attached) entity._onAttach();
     this.children.push(entity);
   }
 
@@ -91,8 +88,7 @@ export class Entity implements EntityParent {
   }
 
   addComponent(component: Component): typeof this {
-    component._entity = this;
-    this.components.push(component);
+    this._addComponent(component);
 
     return this;
   }
@@ -116,11 +112,24 @@ export class Entity implements EntityParent {
     return component;
   }
 
+  _addComponent(component: Component) {
+    this.components.push(component);
+    if (this._attached) {
+      if (component.onAttach) component.onAttach();
+    }
+  }
+
   _removeEntity(entity: Entity) {
     this.children = this.children.filter((c) => c !== entity);
   }
 
+  _attached = false;
+
   _onAttach() {
+    this._attached = true;
+    this.components.forEach((component) => {
+      component._attach(this);
+    });
     this.components.forEach((component) => {
       if (component.onAttach) {
         component.onAttach();
@@ -160,4 +169,6 @@ export class Entity implements EntityParent {
   }
 }
 
-type ComponentConstructor<T extends Component> = new (...props: any[]) => T;
+export type ComponentConstructor<T extends Component> = new (
+  ...props: any[]
+) => T;
