@@ -39,8 +39,24 @@ export class Physics2D extends System implements PhysicsSystem {
   step() {
     this.world.step(this.eventQueue);
 
-    this.eventQueue.drainCollisionEvents((handle1, handle2, started) => {});
+    this.eventQueue.drainCollisionEvents((handle1, handle2, started) => {
+      const collider1 = this.colliders.get(handle1);
+      const collider2 = this.colliders.get(handle2);
+
+      if (collider1 && collider2) {
+        for (const component of collider1.entity.components) {
+          if (component.onCollisionStart2D)
+            component.onCollisionStart2D(collider2);
+        }
+        for (const component of collider2.entity.components) {
+          if (component.onCollisionStart2D)
+            component.onCollisionStart2D(collider1);
+        }
+      }
+    });
   }
+
+  colliders: Map<number, Collider2D> = new Map();
 
   _registerRigidBody2D(rigidBody2D: RigidBody2D) {
     const rb = this.world.createRigidBody(rigidBody2D.rigidBodyDesc);
@@ -54,8 +70,11 @@ export class Physics2D extends System implements PhysicsSystem {
   _registerCollider2D(collider: Collider2D, parent?: RigidBody2D) {
     const col = this.world.createCollider(
       collider.colliderDesc,
-      parent?.rigidBody
+      parent?.rigidBody ?? undefined
     );
+
+    this.colliders.set(col.handle, collider);
+
     collider._collider = col;
   }
 

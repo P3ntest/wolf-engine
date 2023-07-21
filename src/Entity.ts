@@ -160,6 +160,7 @@ export class Entity implements EntityParent {
 
     this.components.forEach((component) => {
       if (component.onDestroy) {
+        this.components = this.components.filter((c) => c !== component);
         component.onDestroy();
       }
     });

@@ -1,5 +1,6 @@
 import { ComponentConstructor, Entity } from "./Entity";
 import { UpdateProps } from "./Ticker";
+import { Collider2D } from "./components/Collider2D";
 import { RigidBody2D } from "./components/RigidBody2D";
 
 export type ComponentId = `c_${string}`;
@@ -14,8 +15,8 @@ interface ComponentMethods<T extends Component = Component> {
   onAttach(this: T): void;
   onUpdate(this: T, props: ComponentUpdateProps): void;
   renderDebug(this: T): any;
-  onCollisionStart2D(this: T, other: RigidBody2D): void;
-  onCollisionEnd2D(this: T, other: RigidBody2D): void;
+  onCollisionStart2D(this: T, other: Collider2D): void;
+  onCollisionEnd2D(this: T, other: Collider2D): void;
   onDestroy(this: T): void;
 }
 
@@ -57,7 +58,7 @@ export abstract class Component implements Partial<ComponentMethods> {
   onUpdate?(props: ComponentUpdateProps): void;
   renderDebug?(): any;
   onCollisionStart2D?(other: Component): void;
-  onCollisionEnd2D?(this: Component, other: RigidBody2D): void;
+  onCollisionEnd2D?(this: Component, other: Collider2D): void;
   onDestroy?(): void;
 
   static fromMethods<Context = {}>(
