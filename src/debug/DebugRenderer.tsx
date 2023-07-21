@@ -14,9 +14,26 @@ export class DebugRenderer extends System {
 
   onUpdate({ deltaTime, scene }: SystemUpdateProps) {
     this.root.render(
-      <DebugDropdown>
-        <SceneECSDebug scene={scene} />
-      </DebugDropdown>
+      <>
+        <DebugDropdown>
+          <SceneECSDebug scene={scene} />
+        </DebugDropdown>
+        <span
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            color: "white",
+            backgroundColor: "black",
+            padding: "0.5em",
+            zIndex: 10000,
+          }}
+        >
+          FPS: {scene.rendererTicker.fpsCounter.getFpsAverage()} TPS:{" "}
+          {scene.ticker.fpsCounter.getFpsAverage()} Entities:{" "}
+          {scene.getAllEntities().length}
+        </span>
+      </>
     );
   }
 }

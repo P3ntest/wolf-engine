@@ -47,11 +47,12 @@ export class Input {
       Input.instance.keys.set(e.key, false);
     });
 
-    window.addEventListener("mousedown", () => {
+    window.addEventListener("mousedown", (e) => {
       if (!Input.instance.keys.get("mouse0")) {
         Input.instance.keyDowns.push("mouse0");
       }
       Input.instance.keys.set("mouse0", true);
+      e.preventDefault();
     });
 
     window.addEventListener("mouseup", () => {
@@ -66,6 +67,10 @@ export class Input {
         x: e.clientX,
         y: e.clientY,
       };
+    });
+
+    window.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
     });
   }
 

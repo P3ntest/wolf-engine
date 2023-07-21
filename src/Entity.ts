@@ -67,13 +67,13 @@ export class Entity implements EntityParent {
   }
 
   update(props: EntityUpdateProps) {
-    this.components.forEach((component) => {
+    for (const component of this.components) {
       component._doUpdate(props);
-    });
+    }
 
-    this.children.forEach((child) => {
+    for (const child of this.children) {
       child.update(props);
-    });
+    }
   }
 
   private addEntity(entity: Entity) {

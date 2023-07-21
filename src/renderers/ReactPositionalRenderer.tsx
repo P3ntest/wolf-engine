@@ -34,18 +34,14 @@ export class ReactPositionalRenderer extends System implements WorldRenderer {
     return screenPosition.add(camPos).rotate(camRot);
   }
 
-  fpsCounter: FpsCounter = new FpsCounter();
-
   constructor(htmlElement: HTMLElement, backgroundColor: string = "#CCCCAA") {
     super();
     this.root = createRoot(htmlElement);
     this.backgroundColor = backgroundColor;
   }
   onUpdate({ deltaTime, scene }: SystemUpdateProps) {
-    const fps = this.fpsCounter.update().getFpsAverage();
-
     this.root.render(
-      <Screen scene={scene} backgroundColor={this.backgroundColor} fps={fps} />
+      <Screen scene={scene} backgroundColor={this.backgroundColor} />
     );
   }
 }
@@ -53,11 +49,9 @@ export class ReactPositionalRenderer extends System implements WorldRenderer {
 function Screen({
   scene,
   backgroundColor,
-  fps,
 }: {
   scene: Scene;
   backgroundColor: string;
-  fps: number;
 }) {
   // Find the camera
   const camera = scene.getAllEntities().find((entity) => {
@@ -87,19 +81,6 @@ function Screen({
         backgroundColor,
       }}
     >
-      <span
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          color: "white",
-          backgroundColor: "black",
-          padding: "0.5em",
-          zIndex: 10000,
-        }}
-      >
-        FPS: {fps} Entities: {scene.getAllEntities().length}
-      </span>
       <EntitiesRenderer
         camPos={camPos}
         camRot={camRot}

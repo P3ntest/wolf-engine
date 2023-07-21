@@ -3,7 +3,7 @@ import { Component, ComponentId } from "./Component";
 import { Entity, EntityParent } from "./Entity";
 import { Input } from "./Input";
 import { System } from "./System";
-import { Ticker, UpdateProps } from "./Ticker";
+import { Renderer, Ticker, UpdateProps } from "./Ticker";
 import { World } from "matter-js";
 import { WolfPerformance } from "./Performance";
 export class Scene implements EntityParent {
@@ -11,10 +11,41 @@ export class Scene implements EntityParent {
 
   private entities: Entity[] = [];
   private systems: System[] = [];
-  ticker: Ticker = new Ticker((deltaTime) => this.loop(deltaTime));
+
+  ticker: Ticker = new Ticker(this.loop.bind(this));
+  rendererTicker: Renderer = new Renderer(this.render.bind(this));
+  rendering: boolean = false;
+
+  private render({ deltaTime }: UpdateProps) {
+    for (const renderer of this.renderers) {
+      if (renderer.onUpdate) {
+        renderer.onUpdate({
+          deltaTime,
+          scene: this,
+          entities: this.getAllEntities(),
+        });
+      }
+    }
+  }
+
+  start() {
+    this.ticker.start();
+    this.rendererTicker.start();
+  }
+
+  stop() {
+    this.ticker.stop();
+    this.rendererTicker.stop();
+  }
 
   getRootEntities(): Entity[] {
     return this.entities;
+  }
+
+  destroy() {
+    this.stop();
+    this.entities.forEach((entity) => entity.destroy());
+    this.entities = [];
   }
 
   getAllEntities(): Entity[] {
@@ -30,7 +61,7 @@ export class Scene implements EntityParent {
   private loop({ deltaTime }: UpdateProps) {
     WolfPerformance.start("scene");
     WolfPerformance.start("system-update");
-    this.systems.forEach((system) => {
+    for (const system of this.systems) {
       if (system.onUpdate) {
         system.onUpdate({
           deltaTime,
@@ -38,26 +69,14 @@ export class Scene implements EntityParent {
           entities: this.getAllEntities(),
         });
       }
-    });
+    }
     WolfPerformance.end("system-update");
 
     WolfPerformance.start("entity-update");
-    this.entities.forEach((entity) => {
+    for (const entity of this.entities) {
       entity.update({ deltaTime });
-    });
+    }
     WolfPerformance.end("entity-update");
-
-    WolfPerformance.start("rendering");
-    this.renderers.forEach((renderer) => {
-      if (renderer.onUpdate) {
-        renderer.onUpdate({
-          deltaTime,
-          scene: this,
-          entities: this.getAllEntities(),
-        });
-      }
-    });
-    WolfPerformance.end("rendering");
 
     Input.instance._resetFrame();
     WolfPerformance.end("scene");
@@ -119,6 +138,19 @@ export class Scene implements EntityParent {
       throw new Error("WorldRenderer not set");
     }
     return this._worldRenderer;
+  }
+
+  _worldPhysics: System | null = null;
+
+  get worldPhysics(): System {
+    if (!this._worldPhysics) {
+      throw new Error("WorldPhysics not set");
+    }
+    return this._worldPhysics;
+  }
+  setWorldPhysics(physics: System) {
+    this.addSystem(physics);
+    this._worldPhysics = physics;
   }
 
   setWorldRenderer(renderer: WorldRenderer) {

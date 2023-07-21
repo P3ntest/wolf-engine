@@ -76,6 +76,7 @@ function UIScreen({ scene }: { scene: Scene }) {
                     ? "flex-start"
                     : "flex-end",
                 transform,
+                zIndex: 10000 + uiComponent.zIndex,
               }}
             >
               {uiComponent.renderHtml()}
@@ -105,15 +106,19 @@ export class ReactUIComponent extends Component {
     offset: new Vector2(),
   };
 
+  zIndex = 0;
+
   constructor(
     renderFn?: renderFn,
     props?: {
-      position: UIPosition;
+      position?: UIPosition;
+      zIndex?: number;
     }
   ) {
     super();
     this.position = props?.position ?? this.position;
     this._renderFn = renderFn;
+    this.zIndex = props?.zIndex ?? this.zIndex;
   }
 
   renderHtml(): JSX.Element | string | null {
