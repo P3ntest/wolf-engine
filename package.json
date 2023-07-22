@@ -1,8 +1,9 @@
 {
-  "name": "wolf-engine",
-  "version": "1.0.1",
+  "name": "@p3ntest/wolf-engine",
+  "version": "1.1.0",
   "description": "",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "barrels": "barrelsby --delete -d src"
   },
