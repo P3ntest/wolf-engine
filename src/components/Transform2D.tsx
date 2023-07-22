@@ -28,6 +28,19 @@ export class Transform2D extends Component {
 
   _localRotation: number = 0;
 
+  set localRotation(rotation: number) {
+    this._localRotation = rotation;
+    if (this._attached) {
+      this.entity.getComponents(Collider2D).forEach((collider) => {
+        collider._updatePosition();
+      });
+    }
+  }
+
+  get localRotation() {
+    return this._localRotation;
+  }
+
   /**
    * The rotation of the entity relative to its parent
    */
@@ -35,7 +48,7 @@ export class Transform2D extends Component {
     if (this._rigidBody) {
       return this._rigidBody.rigidBody.rotation();
     } else {
-      return this._localRotation;
+      return this.localRotation;
     }
   }
 
@@ -59,16 +72,16 @@ export class Transform2D extends Component {
       return this._rigidBody.rigidBody.rotation();
     } else {
       if (this.entity.parent instanceof Scene) {
-        return this._localRotation;
+        return this.localRotation;
       } else {
         if ((this.entity.parent as Entity).hasComponent(Transform2D)) {
           return (
             (this.entity.parent as Entity)
               .requireComponent(Transform2D)
-              .getGlobalRotation() + this._localRotation
+              .getGlobalRotation() + this.localRotation
           );
         } else {
-          return this._localRotation;
+          return this.localRotation;
         }
       }
     }
@@ -105,7 +118,7 @@ export class Transform2D extends Component {
       this.localPosition = position;
     }
     if (rotation) {
-      this._localRotation = rotation;
+      this.localRotation = rotation;
     }
   }
 
@@ -137,7 +150,7 @@ export class Transform2D extends Component {
         true
       );
     } else {
-      this._localRotation += rotation;
+      this.localRotation += rotation;
     }
   }
 

@@ -30,6 +30,10 @@ export class Collider2D extends Component {
     this._rotation = shape.rotation;
 
     this.colliderDesc = shape._toColliderDesc();
+
+    this.colliderDesc.setTranslation(this._offset.x, this._offset.y);
+    this.colliderDesc.setRotation(this._rotation);
+
     if (props?.isSensor) {
       this.colliderDesc.setSensor(true);
     }
@@ -41,18 +45,16 @@ export class Collider2D extends Component {
     }
   }
 
+  /**
+   * Update the position in case the entity has no rigid body its attached to
+   */
   _updatePosition() {
-    if (this.entity.getComponent(RigidBody2D)) {
-      if (this._offset.length() > 0) {
-        console.log("offset", this._offset);
-      }
-      this.collider.setTranslation(this._offset);
-      this.collider.setRotation(this._rotation);
-    } else {
+    if (!this.entity.getComponent(RigidBody2D)) {
       const transform = this.entity.requireComponent(Transform2D);
       this.collider.setTranslation(
         transform.getGlobalPosition().add(this._offset)._toRapier()
       );
+
       this.collider.setRotation(transform.getGlobalRotation() + this._rotation);
     }
   }

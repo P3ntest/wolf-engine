@@ -14,6 +14,8 @@ export class RigidBody2D extends Component {
     return this._rigidBody;
   }
 
+  _initialPosition: Vector2 = new Vector2(0, 0);
+  _initialRotation: number = 0;
   constructor(props: {
     fixed?: boolean;
     initialPosition?: Vector2;
@@ -25,16 +27,8 @@ export class RigidBody2D extends Component {
         ? RAPIER.RigidBodyDesc.fixed()
         : RAPIER.RigidBodyDesc.dynamic();
 
-    if (props.initialRotation) {
-      this.rigidBodyDesc.setRotation(props.initialRotation);
-    }
-
-    if (props.initialPosition) {
-      this.rigidBodyDesc.setTranslation(
-        props.initialPosition.x ?? 0,
-        props.initialPosition.y ?? 0
-      );
-    }
+    this._initialPosition = props.initialPosition ?? this._initialPosition;
+    this._initialRotation = props.initialRotation ?? this._initialRotation;
   }
 
   onDestroy(): void {
@@ -59,6 +53,9 @@ export class RigidBody2D extends Component {
     if (transform) {
       transform._rigidBody = this;
     }
+
+    this.rigidBody.setRotation(this._initialRotation, true);
+    this.rigidBody.setTranslation(this._initialPosition._toRapier(), true);
   }
 
   lerpForce(targetForce: Vector2, thrust: number) {
