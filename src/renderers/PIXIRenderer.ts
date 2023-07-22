@@ -19,6 +19,8 @@ export class PIXIRenderer extends Renderer implements WorldRenderer {
       height: this.height,
     });
 
+    this.app.ticker.stop();
+
     htmlElement.appendChild(this.app.view as HTMLCanvasElement);
 
     window.addEventListener("resize", () => {
@@ -91,6 +93,8 @@ export class PIXIRenderer extends Renderer implements WorldRenderer {
 
       this.app.stage.position.set(pos.x, pos.y);
     }
+
+    this.app.render();
   }
 
   componentContainers = new Map<Object2D, PIXI.Container>();
