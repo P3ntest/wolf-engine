@@ -44,13 +44,24 @@ export class Physics2D extends System implements PhysicsSystem {
       const collider2 = this.colliders.get(handle2);
 
       if (collider1 && collider2) {
-        for (const component of collider1.entity.components) {
-          if (component.onCollisionStart2D)
-            component.onCollisionStart2D(collider2);
-        }
-        for (const component of collider2.entity.components) {
-          if (component.onCollisionStart2D)
-            component.onCollisionStart2D(collider1);
+        if (started) {
+          for (const component of collider1.entity.components) {
+            if (component.onCollisionStart2D)
+              component.onCollisionStart2D(collider2);
+          }
+          for (const component of collider2.entity.components) {
+            if (component.onCollisionStart2D)
+              component.onCollisionStart2D(collider1);
+          }
+        } else {
+          for (const component of collider1.entity.components) {
+            if (component.onCollisionEnd2D)
+              component.onCollisionEnd2D(collider2);
+          }
+          for (const component of collider2.entity.components) {
+            if (component.onCollisionEnd2D)
+              component.onCollisionEnd2D(collider1);
+          }
         }
       }
     });

@@ -94,6 +94,15 @@ function getTreePerformance(tree: RunningTree): TreePerformance {
     (key) => !tree.parents[key] && tree.history[key].length
   )!;
 
+  if (!root) {
+    return {
+      children: [],
+      name: "No root",
+      time: 0,
+      percentage: 0,
+    };
+  }
+
   const avgTime =
     tree.history[root].reduce((a, b) => a + b, 0) / tree.history[root].length;
 

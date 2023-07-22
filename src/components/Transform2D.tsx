@@ -2,6 +2,7 @@ import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { Scene } from "../Scene";
 import { Vector2 } from "../utils/vector";
+import { Collider2D } from "./Collider2D";
 import { RigidBody2D } from "./RigidBody2D";
 
 export class Transform2D extends Component {
@@ -11,7 +12,20 @@ export class Transform2D extends Component {
     this._rigidBody = this.entity.getComponent(RigidBody2D);
   }
 
-  _localPosition: Vector2 = new Vector2(0, 0);
+  private _localPosition: Vector2 = new Vector2(0, 0);
+
+  set localPosition(position: Vector2) {
+    this._localPosition = position;
+    if (this._attached) {
+      this.entity.getComponents(Collider2D).forEach((collider) => {
+        collider._updatePosition();
+      });
+    }
+  }
+  get localPosition() {
+    return this._localPosition;
+  }
+
   _localRotation: number = 0;
 
   /**
@@ -32,7 +46,7 @@ export class Transform2D extends Component {
     if (this._rigidBody) {
       return Vector2.fromObject(this._rigidBody.rigidBody.translation());
     } else {
-      return this._localPosition.clone();
+      return this.localPosition.clone();
     }
   }
 
@@ -65,7 +79,7 @@ export class Transform2D extends Component {
       return Vector2.fromObject(this._rigidBody.rigidBody.translation());
     } else {
       if (this.entity.parent instanceof Scene) {
-        return this._localPosition.clone();
+        return this.localPosition.clone();
       } else {
         if ((this.entity.parent as Entity).hasComponent(Transform2D)) {
           const parentTransform = (
@@ -75,13 +89,23 @@ export class Transform2D extends Component {
           const parentPosition = parentTransform.getGlobalPosition();
           const parentRotation = parentTransform.getGlobalRotation();
 
-          const rotatedPosition = this._localPosition.rotate(parentRotation);
+          const rotatedPosition = this.localPosition.rotate(parentRotation);
 
           return parentPosition.add(rotatedPosition);
         } else {
-          return this._localPosition.clone();
+          return this.localPosition.clone();
         }
       }
+    }
+  }
+
+  constructor(position?: Vector2, rotation?: number) {
+    super();
+    if (position) {
+      this.localPosition = position;
+    }
+    if (rotation) {
+      this._localRotation = rotation;
     }
   }
 
@@ -89,7 +113,7 @@ export class Transform2D extends Component {
     if (this._rigidBody) {
       this._rigidBody.rigidBody.setTranslation(translation, true);
     } else {
-      this._localPosition = translation;
+      this.localPosition = translation;
     }
   }
 
@@ -102,7 +126,7 @@ export class Transform2D extends Component {
         true
       );
     } else {
-      this._localPosition = this._localPosition.add(translation);
+      this.localPosition = this.localPosition.add(translation);
     }
   }
 
@@ -115,5 +139,19 @@ export class Transform2D extends Component {
     } else {
       this._localRotation += rotation;
     }
+  }
+
+  pointTowards(position: Vector2) {
+    const globalPosition = this.getGlobalPosition();
+
+    const direction = position.subtract(globalPosition);
+
+    const angle = direction.getAngle();
+
+    this.rotate(angle - this.rotation);
+  }
+
+  get forward() {
+    return Vector2.fromAngle(this.getGlobalRotation());
   }
 }

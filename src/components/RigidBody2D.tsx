@@ -14,12 +14,20 @@ export class RigidBody2D extends Component {
     return this._rigidBody;
   }
 
-  constructor(props: { fixed?: boolean; initialPosition?: Vector2 }) {
+  constructor(props: {
+    fixed?: boolean;
+    initialPosition?: Vector2;
+    initialRotation?: number;
+  }) {
     super();
     this.rigidBodyDesc =
       props.fixed ?? false
         ? RAPIER.RigidBodyDesc.fixed()
         : RAPIER.RigidBodyDesc.dynamic();
+
+    if (props.initialRotation) {
+      this.rigidBodyDesc.setRotation(props.initialRotation);
+    }
 
     if (props.initialPosition) {
       this.rigidBodyDesc.setTranslation(
@@ -31,12 +39,12 @@ export class RigidBody2D extends Component {
 
   onDestroy(): void {
     this.scene.worldPhysics._unregisterRigidBody2D(this);
-    for (const collider of this.entity.getComponents(Collider2D)) {
-      collider._reAttachCollider();
-    }
     const transform = this.entity.getComponent(Transform2D);
     if (transform) {
       transform._rigidBody = null;
+    }
+    for (const collider of this.entity.getComponents(Collider2D)) {
+      collider._reAttachCollider();
     }
   }
 
@@ -51,5 +59,13 @@ export class RigidBody2D extends Component {
     if (transform) {
       transform._rigidBody = this;
     }
+  }
+
+  lerpForce(targetForce: Vector2, thrust: number) {
+    const currentVelocity = Vector2.fromObject(this.rigidBody.linvel());
+
+    const force = targetForce.subtract(currentVelocity).multiplyScalar(thrust);
+
+    this.rigidBody.applyImpulse(force._toRapier(), true);
   }
 }

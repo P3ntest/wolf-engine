@@ -52,6 +52,7 @@ export abstract class Component implements Partial<ComponentMethods> {
     }
     return this._entity;
   }
+
   id: ComponentId = genComponentId();
 
   onAttach?(): void;

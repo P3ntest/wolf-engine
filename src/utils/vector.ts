@@ -59,6 +59,7 @@ export class Vector2 {
   }
 
   static UP = new Vector2(0, -1);
+  static ZERO = new Vector2(0, 0);
 
   dot(vector: Vector2) {
     return this.x * vector.x + this.y * vector.y;

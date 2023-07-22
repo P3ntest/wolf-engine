@@ -1,7 +1,15 @@
 import { Component } from "../Component";
-import RAPIER from "@dimforge/rapier2d";
+import RAPIER, { RigidBody } from "@dimforge/rapier2d";
 import { RigidBody2D } from "./RigidBody2D";
+import { Shape2D } from "../physics/Shape2D";
+import { Vector2 } from "../utils/vector";
+import { Transform2D } from "./Transform2D";
 
+interface Collider2DProps {
+  isSensor?: boolean;
+  friction?: number;
+  detectCollisions?: boolean;
+}
 export class Collider2D extends Component {
   colliderDesc: RAPIER.ColliderDesc;
   _collider: RAPIER.Collider | null = null;
@@ -12,13 +20,41 @@ export class Collider2D extends Component {
     return this._collider;
   }
 
-  constructor(collider: RAPIER.ColliderDesc) {
+  _offset: Vector2 = new Vector2(0, 0);
+  _rotation: number = 0;
+
+  constructor(shape: Shape2D, public props?: Collider2DProps) {
     super();
-    this.colliderDesc = collider;
+
+    this._offset = shape.offset;
+    this._rotation = shape.rotation;
+
+    this.colliderDesc = shape._toColliderDesc();
+    if (props?.isSensor) {
+      this.colliderDesc.setSensor(true);
+    }
+    if (props?.friction) {
+      this.colliderDesc.setFriction(props.friction);
+    }
+    if (props?.detectCollisions || props?.isSensor) {
+      this.colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+    }
   }
 
-  getComponentDependencies() {
-    return [Collider2D];
+  _updatePosition() {
+    if (this.entity.getComponent(RigidBody2D)) {
+      if (this._offset.length() > 0) {
+        console.log("offset", this._offset);
+      }
+      this.collider.setTranslation(this._offset);
+      this.collider.setRotation(this._rotation);
+    } else {
+      const transform = this.entity.requireComponent(Transform2D);
+      this.collider.setTranslation(
+        transform.getGlobalPosition().add(this._offset)._toRapier()
+      );
+      this.collider.setRotation(transform.getGlobalRotation() + this._rotation);
+    }
   }
 
   onDestroy(): void {
@@ -37,6 +73,7 @@ export class Collider2D extends Component {
   _attachCollider() {
     const rb = this.entity.getComponent(RigidBody2D) ?? undefined;
     this.scene.worldPhysics._registerCollider2D(this, rb);
+    this._updatePosition();
   }
 
   onAttach(): void {
