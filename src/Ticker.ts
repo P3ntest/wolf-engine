@@ -1,4 +1,3 @@
-import { GuildExplicitContentFilter } from "discord.js";
 import { FpsCounter } from "./utils/fps";
 
 export interface UpdateProps {
@@ -35,7 +34,7 @@ export class GameLoopTicker implements TickerSystem {
 
   doTick() {
     this.tick++;
-    this.deltaTime = this.lastTime - performance.now();
+    this.deltaTime = performance.now() - this.lastTime;
     this.lastTime = performance.now();
     this.callback({ deltaTime: this.deltaTime });
     this.fpsCounter.update();

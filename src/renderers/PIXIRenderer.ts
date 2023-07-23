@@ -53,19 +53,29 @@ export class PIXIRenderer extends Renderer implements WorldRenderer {
     return camPos.add(cameraDelta);
   }
 
-  _updateComponent(component: Object2D, object: PIXI.Container): void {
+  _updateComponent(
+    component: Object2D,
+    object: PIXI.Container,
+    props: DrawProps | null
+  ): void {
     const transform = component.entity.requireComponent(Transform2D);
     const position = transform.getGlobalPosition().multiplyScalar(this.zoom);
     const rotation = transform.getGlobalRotation();
 
     object.position.set(position.x, position.y);
     object.rotation = rotation;
+
+    if (props != null && component.draw) {
+      component.draw(props);
+    }
   }
 
-  draw({ deltaTime, entities, scene }: DrawProps) {
+  draw(props: DrawProps) {
     for (const [component, object] of this.componentContainers.entries()) {
-      this._updateComponent(component, object);
+      this._updateComponent(component, object, props);
     }
+
+    const scene = props.scene;
 
     const camera = scene
       .getAllEntities()
@@ -100,7 +110,7 @@ export class PIXIRenderer extends Renderer implements WorldRenderer {
   componentContainers = new Map<Object2D, PIXI.Container>();
   _registerComponent(component: Object2D): void {
     this.componentContainers.set(component, component.container);
-    this._updateComponent(component, component.container);
+    this._updateComponent(component, component.container, null);
     this.app.stage.addChild(component.container);
 
     this._updateChildrenZIndex();
@@ -140,6 +150,8 @@ export class Object2D extends Component {
     this.container.addChild(sprite);
     this.sprite = sprite;
   }
+
+  draw?(props: DrawProps): void;
 
   onAttach(): void {
     this.entity.scene.requireRenderer(PIXIRenderer)._registerComponent(this);

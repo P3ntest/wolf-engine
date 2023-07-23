@@ -98,6 +98,10 @@ export class Input {
       }
       e.preventDefault();
     });
+
+    window.addEventListener("blur", () => {
+      Input.instance.keys.clear();
+    });
   }
 
   mousePosition: { x: number; y: number } = { x: 0, y: 0 };
