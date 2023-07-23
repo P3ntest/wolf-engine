@@ -21,7 +21,9 @@ export class Input {
     });
   }
 
-  static init() {
+  static init(gameElement?: EventTarget) {
+    gameElement = gameElement ?? window;
+
     Input.instance = new Input();
 
     Input.instance.axes.push(
@@ -55,19 +57,23 @@ export class Input {
       Input.instance.keys.set(key, false);
     });
 
-    window.addEventListener("mousedown", (e) => {
-      if (!Input.instance.keys.get("mouse0")) {
-        Input.instance.keyDowns.push("mouse0");
+    gameElement.addEventListener("mousedown", (e) => {
+      const mouseEvent = e as MouseEvent;
+      const button = (mouseEvent.button ?? 0) === 0 ? "mouse0" : "mouse1";
+      if (!Input.instance.keys.get(button)) {
+        Input.instance.keyDowns.push(button);
       }
-      Input.instance.keys.set("mouse0", true);
+      Input.instance.keys.set(button, true);
       e.preventDefault();
     });
 
-    window.addEventListener("mouseup", () => {
-      if (Input.instance.keys.get("mouse0")) {
-        Input.instance.keyUps.push("mouse0");
+    gameElement.addEventListener("mouseup", (e) => {
+      const mouseEvent = e as MouseEvent;
+      const button = (mouseEvent.button ?? 0) === 0 ? "mouse0" : "mouse1";
+      if (Input.instance.keys.get(button)) {
+        Input.instance.keyUps.push(button);
       }
-      Input.instance.keys.set("mouse0", false);
+      Input.instance.keys.set(button, false);
     });
 
     window.addEventListener("mousemove", (e) => {
@@ -77,7 +83,7 @@ export class Input {
       };
     });
 
-    window.addEventListener("contextmenu", (e) => {
+    gameElement.addEventListener("contextmenu", (e) => {
       e.preventDefault();
     });
 
@@ -90,6 +96,7 @@ export class Input {
         Input.instance.keyDowns.push("scrollup");
         Input.instance.keys.set("scrollup", true);
       }
+      e.preventDefault();
     });
   }
 

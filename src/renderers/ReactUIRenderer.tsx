@@ -4,15 +4,16 @@ import { System, SystemUpdateProps } from "../System";
 import { Vector2 } from "../utils/vector";
 import { Entity } from "../Entity";
 import { Scene } from "../Scene";
+import { Renderer } from "./Renderer";
 
-export class ReactUIRenderer extends System {
+export class ReactUIRenderer extends Renderer {
   root: Root;
   constructor(root: HTMLElement) {
     super();
     this.root = createRoot(root);
   }
 
-  onUpdate({ scene }: SystemUpdateProps) {
+  draw({ scene }: SystemUpdateProps) {
     this.root.render(<UIScreen scene={scene} />);
   }
 }
@@ -31,6 +32,7 @@ function UIScreen({ scene }: { scene: Scene }) {
         width: "100vw",
         height: "100vh",
         zIndex: 1000,
+        pointerEvents: "none",
       }}
     >
       {entities.map((entity) => {
@@ -79,7 +81,13 @@ function UIScreen({ scene }: { scene: Scene }) {
                 zIndex: 10000 + uiComponent.zIndex,
               }}
             >
-              {uiComponent.renderHtml()}
+              <div
+                style={{
+                  pointerEvents: "all",
+                }}
+              >
+                {uiComponent.renderHtml()}
+              </div>
             </div>
           );
         });
