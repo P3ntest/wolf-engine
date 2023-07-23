@@ -1,5 +1,6 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
+import { WolfPerformance } from "../Performance";
 import { Transform2D } from "../components/Transform2D";
 import { Vector2 } from "../utils/vector";
 import { DrawProps, Renderer, WorldRenderer } from "./Renderer";
@@ -71,12 +72,15 @@ export class PIXIRenderer extends Renderer implements WorldRenderer {
   }
 
   draw(props: DrawProps) {
+    WolfPerformance.start("render", "object update");
     for (const [component, object] of this.componentContainers.entries()) {
       this._updateComponent(component, object, props);
     }
+    WolfPerformance.end("render");
 
     const scene = props.scene;
 
+    WolfPerformance.start("render", "camera update");
     const camera = scene
       .getAllEntities()
       .find((entity) => {
@@ -104,7 +108,11 @@ export class PIXIRenderer extends Renderer implements WorldRenderer {
       this.app.stage.position.set(pos.x, pos.y);
     }
 
+    WolfPerformance.end("render");
+
+    WolfPerformance.start("render", "pixijs call cycle");
     this.app.render();
+    WolfPerformance.end("render");
   }
 
   componentContainers = new Map<Object2D, PIXI.Container>();

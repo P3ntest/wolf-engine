@@ -17,6 +17,11 @@ export class Scene implements EntityParent {
   rendererTicker: RenderTicker = new RenderTicker(this.render.bind(this));
   rendering: boolean = false;
 
+  private constructor() {}
+  static _instantiate() {
+    return new Scene();
+  }
+
   private render({ deltaTime }: UpdateProps) {
     WolfPerformance.start("render");
     for (const renderer of this.renderers) {
@@ -43,7 +48,7 @@ export class Scene implements EntityParent {
     return this.entities;
   }
 
-  destroy() {
+  _destroy() {
     this.stop();
     this.entities.forEach((entity) => entity.destroy());
     this.entities = [];
