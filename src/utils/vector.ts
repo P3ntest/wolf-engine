@@ -1,3 +1,5 @@
+import RAPIER from "@dimforge/rapier2d";
+
 export class Vector2 {
   x = 0;
   y = 0;
@@ -21,6 +23,10 @@ export class Vector2 {
 
   length() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
+  }
+
+  _toRapier(): RAPIER.Vector2 {
+    return new RAPIER.Vector2(this.x, this.y);
   }
 
   rotate(angle: number) {
@@ -53,6 +59,7 @@ export class Vector2 {
   }
 
   static UP = new Vector2(0, -1);
+  static ZERO = new Vector2(0, 0);
 
   dot(vector: Vector2) {
     return this.x * vector.x + this.y * vector.y;

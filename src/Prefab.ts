@@ -21,22 +21,18 @@ export class Prefab<Props> {
 
   static prefabs = new Map<string, Prefab<any>>();
 
-  static instantiate<Props = {}>(
-    name: string,
-    parent: EntityParent,
-    props: Partial<Props>
-  ) {
+  static instantiate<Props = {}>(name: string, props: Partial<Props>) {
     const prefab = Prefab.prefabs.get(name);
 
     if (!prefab) {
       throw new Error(`Prefab with name ${name} not found`);
     }
 
-    prefab.instantiate(parent, props);
+    prefab.instantiate(props);
   }
 
-  instantiate(parent: EntityParent, props: Partial<Props>): Entity {
-    const entity = parent.createEntity();
+  instantiate(props: Partial<Props>): Entity {
+    const entity = new Entity();
     this._instantiateFn(entity, props);
 
     return entity;

@@ -4,19 +4,25 @@ import { Scene } from "../Scene";
 import { Entity } from "../Entity";
 import { Component } from "../Component";
 import { useState } from "react";
+import { PerformanceComponent, getPerformance } from "../Performance";
+import { Renderer } from "../renderers/Renderer";
+import { Vector2 } from "../utils/vector";
 
-export class DebugRenderer extends System {
+export class DebugRenderer extends Renderer {
   root: Root;
   constructor(htmlElement: HTMLElement) {
     super();
     this.root = createRoot(htmlElement);
   }
 
-  onUpdate({ deltaTime, scene }: SystemUpdateProps) {
+  draw({ deltaTime, scene }: SystemUpdateProps) {
+    const performance = getPerformance();
+
     this.root.render(
       <>
         <DebugDropdown>
-          <SceneECSDebug scene={scene} />
+          <PerformanceComponent performance={performance} />
+          {/* <SceneECSDebug scene={scene} /> */}
         </DebugDropdown>
         <span
           style={{

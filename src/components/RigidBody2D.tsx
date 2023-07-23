@@ -1,60 +1,68 @@
-import { Bodies, Body } from "matter-js";
 import { Component } from "../Component";
+import RAPIER from "@dimforge/rapier2d";
+import { Collider2D } from "./Collider2D";
+import { Transform2D } from "./Transform2D";
 import { Vector2 } from "../utils/vector";
-import { Physics2D } from "../physics/Physics2D";
-
 export class RigidBody2D extends Component {
-  body: Matter.Body;
+  rigidBodyDesc: RAPIER.RigidBodyDesc;
+  _rigidBody: RAPIER.RigidBody | null = null;
 
-  _collidingWith: Set<RigidBody2D> = new Set();
-
-  constructor(body: Matter.Body) {
-    super();
-
-    this.body = body;
+  get rigidBody(): RAPIER.RigidBody {
+    if (this._rigidBody === null) {
+      throw new Error("RigidBody2D not attached to world");
+    }
+    return this._rigidBody;
   }
 
-  onAttach(): void {
-    this.entity.scene.getSystem(Physics2D)?._addBody(this.id, this.body);
+  _initialPosition: Vector2 = new Vector2(0, 0);
+  _initialRotation: number = 0;
+  constructor(props: {
+    fixed?: boolean;
+    initialPosition?: Vector2;
+    initialRotation?: number;
+  }) {
+    super();
+    this.rigidBodyDesc =
+      props.fixed ?? false
+        ? RAPIER.RigidBodyDesc.fixed()
+        : RAPIER.RigidBodyDesc.dynamic();
+
+    this._initialPosition = props.initialPosition ?? this._initialPosition;
+    this._initialRotation = props.initialRotation ?? this._initialRotation;
   }
 
   onDestroy(): void {
-    this.entity.scene.getSystem(Physics2D)?._removeBody(this.id);
+    this.scene.worldPhysics._unregisterRigidBody2D(this);
+    const transform = this.entity.getComponent(Transform2D);
+    if (transform) {
+      transform._rigidBody = null;
+    }
+    for (const collider of this.entity.getComponents(Collider2D)) {
+      collider._reAttachCollider();
+    }
   }
 
-  getCollidingWith(): RigidBody2D[] {
-    return Array.from(this._collidingWith);
+  onAttach(): void {
+    this.scene.worldPhysics._registerRigidBody2D(this);
+    const colliders = this.entity.getComponents(Collider2D);
+    for (const collider of colliders) {
+      collider._reAttachCollider();
+    }
+
+    const transform = this.entity.getComponent(Transform2D);
+    if (transform) {
+      transform._rigidBody = this;
+    }
+
+    this.rigidBody.setRotation(this._initialRotation, true);
+    this.rigidBody.setTranslation(this._initialPosition._toRapier(), true);
   }
 
-  applyForce(vector: Vector2, point?: Vector2) {
-    Body.applyForce(this.body, point ?? this.body.position, vector);
-  }
+  lerpForce(targetForce: Vector2, thrust: number) {
+    const currentVelocity = Vector2.fromObject(this.rigidBody.linvel());
 
-  translate(vector: Vector2) {
-    Body.translate(this.body, vector);
-  }
+    const force = targetForce.subtract(currentVelocity).multiplyScalar(thrust);
 
-  setVelocity(vector: Vector2) {
-    Body.setVelocity(this.body, vector);
-  }
-
-  setPosition(vector: Vector2) {
-    Body.setPosition(this.body, vector);
-  }
-
-  setRotation(rotation: number) {
-    Body.setAngle(this.body, rotation);
-  }
-
-  rotate(rotation: number) {
-    Body.setAngle(this.body, (this.body.angle + rotation) % (Math.PI * 2));
-  }
-
-  getVelocity(): Vector2 {
-    return new Vector2(this.body.velocity.x, this.body.velocity.y);
-  }
-
-  getSpeed(): number {
-    return this.body.speed;
+    this.rigidBody.applyImpulse(force._toRapier(), true);
   }
 }

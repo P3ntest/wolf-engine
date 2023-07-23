@@ -1,7 +1,8 @@
 import { Component } from "./Component";
 import { Scene } from "./Scene";
 import { UpdateProps } from "./Ticker";
-
+import { RigidBody2D } from "./components/RigidBody2D";
+import { Transform2D } from "./components/Transform2D";
 export type EntityId = `e_${string}`;
 
 function genEntityId(): EntityId {
@@ -9,8 +10,9 @@ function genEntityId(): EntityId {
 }
 
 export interface EntityParent {
-  createEntity(): Entity;
+  attachEntity(entity: Entity): void;
   getAllEntities(): Entity[];
+  _removeEntity(entity: Entity): void;
 }
 
 export interface EntityUpdateProps extends UpdateProps {}
@@ -24,8 +26,7 @@ export class Entity implements EntityParent {
   get scene(): Scene {
     if (this.parent instanceof Scene) {
       return this.parent;
-    }
-    return this.parent.scene;
+    } else return (this.parent as Entity).scene;
   }
 
   private tags: Set<string> = new Set();
@@ -44,18 +45,16 @@ export class Entity implements EntityParent {
     return this.tags.has(tag);
   }
 
-  _parent: Entity | Scene | null = null;
-  get parent(): Entity | Scene {
+  _parent: EntityParent | null = null;
+  get parent(): EntityParent {
     if (!this._parent) {
       throw new Error("Entity not attached to parent");
     }
     return this._parent;
   }
 
-  createEntity(): Entity {
-    const child = new Entity();
-    this.addEntity(child);
-    return child;
+  attachEntity(entity: Entity): void {
+    this._addEntity(entity);
   }
 
   getAllEntities(): Entity[] {
@@ -76,9 +75,9 @@ export class Entity implements EntityParent {
     }
   }
 
-  private addEntity(entity: Entity) {
+  private _addEntity(entity: Entity) {
     entity._parent = this;
-    if (this._parent) entity._onAttach();
+    if (this._attached) entity._onAttach(this);
     this.children.push(entity);
   }
 
@@ -91,8 +90,7 @@ export class Entity implements EntityParent {
   }
 
   addComponent(component: Component): typeof this {
-    component._entity = this;
-    this.components.push(component);
+    this._addComponent(component);
 
     return this;
   }
@@ -116,19 +114,42 @@ export class Entity implements EntityParent {
     return component;
   }
 
+  _addComponent(component: Component) {
+    this.components.push(component);
+    if (this._attached) {
+      if (component.onAttach) component.onAttach();
+    }
+  }
+
   _removeEntity(entity: Entity) {
     this.children = this.children.filter((c) => c !== entity);
   }
 
-  _onAttach() {
-    this.components.forEach((component) => {
+  _attached = false;
+
+  _onAttach(parent: EntityParent) {
+    if (this._attached) throw new Error("Entity already attached");
+    this._attached = true;
+    this._parent = parent;
+
+    const components = [...this.components];
+    this.components = [];
+
+    components.forEach((component) => {
+      this.components.push(component);
+      component._attach(this);
       if (component.onAttach) {
         component.onAttach();
       }
     });
+    // components.forEach((component) => {
+    //   if (component.onAttach) {
+    //     component.onAttach();
+    //   }
+    // });
 
     this.children.forEach((child) => {
-      child._onAttach();
+      child._onAttach(this);
     });
   }
 
@@ -139,6 +160,7 @@ export class Entity implements EntityParent {
 
     this.components.forEach((component) => {
       if (component.onDestroy) {
+        this.components = this.components.filter((c) => c !== component);
         component.onDestroy();
       }
     });
@@ -158,6 +180,21 @@ export class Entity implements EntityParent {
   ): T[] {
     return this.components.filter((c) => c instanceof componentType) as T[];
   }
+
+  _transform2D: Transform2D | null = null;
+  get transform2D() {
+    if (this._transform2D) return this._transform2D;
+    this._transform2D = this.requireComponent(Transform2D);
+    return this._transform2D;
+  }
+  _rigidBody2D: RigidBody2D | null = null;
+  get rigidBody2D() {
+    if (this._rigidBody2D) return this._rigidBody2D;
+    this._rigidBody2D = this.requireComponent(RigidBody2D);
+    return this._rigidBody2D;
+  }
 }
 
-type ComponentConstructor<T extends Component> = new (...props: any[]) => T;
+export type ComponentConstructor<T extends Component> = new (
+  ...props: any[]
+) => T;

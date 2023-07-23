@@ -1,148 +1,95 @@
+import { RigidBody2D } from "./../components/RigidBody2D";
 import { Body, Composite, Engine, Events, Render } from "matter-js";
 import { System, SystemUpdateProps } from "../System";
-import { RigidBody2D } from "../components/RigidBody2D";
 import { ComponentId } from "../Component";
 import { Transform2D } from "../components/Transform2D";
 import { Scene } from "../Scene";
 import { WolfPerformance } from "../Performance";
+import RAPIER from "@dimforge/rapier2d";
+import { Collider2D } from "../components/Collider2D";
 
 interface PhysicsProps {
   gravity: boolean;
 }
 
-export class Physics2D extends System {
-  engine: Engine;
+export interface PhysicsSystem extends System {
+  world: RAPIER.World;
+  step: () => void;
+  _registerRigidBody2D(rigidBody2D: RigidBody2D): void;
+  _unregisterRigidBody2D(rigidBody2D: RigidBody2D): void;
+  _registerCollider2D(collider: Collider2D, parent?: RigidBody2D): void;
+  _unregisterCollider2D(collider: Collider2D): void;
+}
 
-  getComponentFromBody(body: Matter.Body): RigidBody2D | null {
-    for (const [id, b] of this.bodies) {
-      if (b === body) {
-        return this.scene.getComponentById(id) as RigidBody2D;
-      }
-    }
-
-    return null;
-  }
+export class Physics2D extends System implements PhysicsSystem {
+  world: RAPIER.World;
 
   constructor(props: PhysicsProps = { gravity: true }) {
     super();
-    this.engine = Engine.create();
 
-    if (!props.gravity) {
-      this.engine.gravity.scale = 0;
-    }
+    const worldGravity = {
+      x: 0,
+      y: props.gravity ? 9.981 : 0,
+    };
+    this.world = new RAPIER.World(worldGravity);
+  }
 
-    registerEngineEvents(this.engine, this);
+  eventQueue = new RAPIER.EventQueue(true);
 
-    const renderer = Render.create({
-      element: document.body,
-      engine: this.engine,
+  step() {
+    this.world.step(this.eventQueue);
+
+    this.eventQueue.drainCollisionEvents((handle1, handle2, started) => {
+      const collider1 = this.colliders.get(handle1);
+      const collider2 = this.colliders.get(handle2);
+
+      if (collider1 && collider2) {
+        if (started) {
+          for (const component of collider1.entity.components) {
+            if (component.onCollisionStart2D)
+              component.onCollisionStart2D(collider2);
+          }
+          for (const component of collider2.entity.components) {
+            if (component.onCollisionStart2D)
+              component.onCollisionStart2D(collider1);
+          }
+        } else {
+          for (const component of collider1.entity.components) {
+            if (component.onCollisionEnd2D)
+              component.onCollisionEnd2D(collider2);
+          }
+          for (const component of collider2.entity.components) {
+            if (component.onCollisionEnd2D)
+              component.onCollisionEnd2D(collider1);
+          }
+        }
+      }
     });
-
-    Render.run(renderer);
   }
 
-  bodies: Map<ComponentId, Matter.Body> = new Map();
+  colliders: Map<number, Collider2D> = new Map();
 
-  _addBody(component: ComponentId, body: Matter.Body) {
-    this.bodies.set(component, body);
-    Composite.add(this.engine.world, body);
+  _registerRigidBody2D(rigidBody2D: RigidBody2D) {
+    const rb = this.world.createRigidBody(rigidBody2D.rigidBodyDesc);
+    rigidBody2D._rigidBody = rb;
   }
 
-  _removeBody(component: ComponentId) {
-    const body = this.bodies.get(component);
-    if (body) {
-      Composite.remove(this.engine.world, body);
-      this.bodies.delete(component);
-    }
+  _unregisterRigidBody2D(rigidBody2D: RigidBody2D): void {
+    this.world.removeRigidBody(rigidBody2D.rigidBody);
   }
 
-  _lastPhysicsUpdate = 0;
-
-  onUpdate({ deltaTime, entities }: SystemUpdateProps) {
-    WolfPerformance.start("physics");
-
-    WolfPerformance.start("rigid-body-linking");
-    const rigidBodies = entities.filter((entity) =>
-      entity.hasComponent(RigidBody2D)
+  _registerCollider2D(collider: Collider2D, parent?: RigidBody2D) {
+    const col = this.world.createCollider(
+      collider.colliderDesc,
+      parent?.rigidBody ?? undefined
     );
 
-    WolfPerformance.end("rigid-body-linking");
+    this.colliders.set(col.handle, collider);
 
-    // Only update physics at 30fps
-    WolfPerformance.start("engine-update");
-    Engine.update(this.engine, deltaTime);
-    WolfPerformance.end("engine-update");
-
-    // Patch position of Transform to match rigid bodies
-    WolfPerformance.start("transform-patching");
-    rigidBodies.forEach((entity) => {
-      const rigidBody = entity.requireComponent(RigidBody2D);
-      const transform = entity.requireComponent(Transform2D);
-      const body = this.bodies.get(rigidBody.id);
-      if (!body) return;
-      const { x, y } = body.position;
-      const angle = body.angle;
-      transform.setGlobalPosition(x, y);
-      transform.setGlobalRotation(angle);
-    });
-    WolfPerformance.end("transform-patching");
-    WolfPerformance.end("physics");
+    collider._collider = col;
   }
-}
 
-function registerEngineEvents(engine: Engine, physics: Physics2D) {
-  Events.on(engine, "collisionStart", (event) => {
-    const pairs = event.pairs;
-
-    for (const pair of pairs) {
-      const { bodyA, bodyB } = pair;
-
-      const componentA = physics.getComponentFromBody(bodyA);
-      const componentB = physics.getComponentFromBody(bodyB);
-
-      if (componentA && componentB) {
-        componentA._collidingWith.add(componentB);
-        componentB._collidingWith.add(componentA);
-
-        componentA.entity.components.forEach((component) => {
-          if (component.onCollisionStart2D) {
-            component.onCollisionStart2D(componentB);
-          }
-        });
-        componentB.entity.components.forEach((component) => {
-          if (component.onCollisionStart2D) {
-            component.onCollisionStart2D(componentA);
-          }
-        });
-      }
-    }
-  });
-
-  Events.on(engine, "collisionEnd", (event) => {
-    const pairs = event.pairs;
-
-    for (const pair of pairs) {
-      const { bodyA, bodyB } = pair;
-
-      const componentA = physics.getComponentFromBody(bodyA);
-      const componentB = physics.getComponentFromBody(bodyB);
-
-      if (componentA && componentB) {
-        componentA._collidingWith.delete(componentB);
-        componentB._collidingWith.delete(componentA);
-
-        componentA.entity.components.forEach((component) => {
-          if (component.onCollisionEnd2D) {
-            component.onCollisionEnd2D(componentB);
-          }
-        });
-
-        componentB.entity.components.forEach((component) => {
-          if (component.onCollisionEnd2D) {
-            component.onCollisionEnd2D(componentA);
-          }
-        });
-      }
-    }
-  });
+  _unregisterCollider2D(collider: Collider2D): void {
+    this.world.removeCollider(collider.collider, true);
+  }
 }

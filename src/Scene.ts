@@ -1,31 +1,37 @@
-import { WorldRenderer } from "./renderers/ReactPositionalRenderer";
 import { Component, ComponentId } from "./Component";
 import { Entity, EntityParent } from "./Entity";
 import { Input } from "./Input";
 import { System } from "./System";
-import { Renderer, Ticker, UpdateProps } from "./Ticker";
+import { RenderTicker, GameLoopTicker, UpdateProps } from "./Ticker";
 import { World } from "matter-js";
 import { WolfPerformance } from "./Performance";
+import { PhysicsSystem } from "./physics/Physics2D";
+import { Renderer, WorldRenderer } from "./renderers/Renderer";
 export class Scene implements EntityParent {
-  private renderers: System[] = [];
+  private renderers: Renderer[] = [];
 
   private entities: Entity[] = [];
   private systems: System[] = [];
 
-  ticker: Ticker = new Ticker(this.loop.bind(this));
-  rendererTicker: Renderer = new Renderer(this.render.bind(this));
+  ticker: GameLoopTicker = new GameLoopTicker(this.physicsUpdate.bind(this));
+  rendererTicker: RenderTicker = new RenderTicker(this.render.bind(this));
   rendering: boolean = false;
 
+  private constructor() {}
+  static _instantiate() {
+    return new Scene();
+  }
+
   private render({ deltaTime }: UpdateProps) {
+    WolfPerformance.start("render");
     for (const renderer of this.renderers) {
-      if (renderer.onUpdate) {
-        renderer.onUpdate({
-          deltaTime,
-          scene: this,
-          entities: this.getAllEntities(),
-        });
-      }
+      renderer.draw({
+        deltaTime,
+        scene: this,
+        entities: this.getAllEntities(),
+      });
     }
+    WolfPerformance.end("render");
   }
 
   start() {
@@ -42,7 +48,7 @@ export class Scene implements EntityParent {
     return this.entities;
   }
 
-  destroy() {
+  _destroy() {
     this.stop();
     this.entities.forEach((entity) => entity.destroy());
     this.entities = [];
@@ -58,9 +64,9 @@ export class Scene implements EntityParent {
     return entities;
   }
 
-  private loop({ deltaTime }: UpdateProps) {
-    WolfPerformance.start("scene");
-    WolfPerformance.start("system-update");
+  private physicsUpdate({ deltaTime }: UpdateProps) {
+    WolfPerformance.start("physics");
+    WolfPerformance.start("physics", "system update");
     for (const system of this.systems) {
       if (system.onUpdate) {
         system.onUpdate({
@@ -70,16 +76,20 @@ export class Scene implements EntityParent {
         });
       }
     }
-    WolfPerformance.end("system-update");
+    WolfPerformance.end("physics");
 
-    WolfPerformance.start("entity-update");
+    WolfPerformance.start("physics", "entity-update");
     for (const entity of this.entities) {
       entity.update({ deltaTime });
     }
-    WolfPerformance.end("entity-update");
+    WolfPerformance.end("physics");
+
+    WolfPerformance.start("physics", "engine");
+    this.worldPhysics.step();
+    WolfPerformance.end("physics");
 
     Input.instance._resetFrame();
-    WolfPerformance.end("scene");
+    WolfPerformance.end("physics");
   }
 
   getEntityByTag(tag: string): Entity | null {
@@ -115,6 +125,27 @@ export class Scene implements EntityParent {
     return system;
   }
 
+  requireRenderer<T extends Renderer>(
+    rendererClass: new (...args: any[]) => T
+  ): T {
+    const renderer = this.getRenderer(rendererClass);
+    if (!renderer) {
+      throw new Error(`Renderer ${rendererClass.name} not found`);
+    }
+    return renderer;
+  }
+
+  getRenderer<T extends Renderer>(
+    rendererClass: new (...args: any[]) => T
+  ): T | null {
+    for (const renderer of this.renderers) {
+      if (renderer instanceof rendererClass) {
+        return renderer;
+      }
+    }
+    return null;
+  }
+
   getComponentById(id: ComponentId): Component | null {
     for (const entity of this.getAllEntities()) {
       for (const component of entity.components) {
@@ -140,15 +171,15 @@ export class Scene implements EntityParent {
     return this._worldRenderer;
   }
 
-  _worldPhysics: System | null = null;
+  _worldPhysics: PhysicsSystem | null = null;
 
-  get worldPhysics(): System {
+  get worldPhysics(): PhysicsSystem {
     if (!this._worldPhysics) {
       throw new Error("WorldPhysics not set");
     }
     return this._worldPhysics;
   }
-  setWorldPhysics(physics: System) {
+  setWorldPhysics(physics: PhysicsSystem) {
     this.addSystem(physics);
     this._worldPhysics = physics;
   }
@@ -160,7 +191,7 @@ export class Scene implements EntityParent {
     this._worldRenderer = renderer;
   }
 
-  addRenderer(renderer: System) {
+  addRenderer(renderer: Renderer) {
     renderer._scene = this;
     this.renderers.push(renderer);
   }
@@ -169,16 +200,8 @@ export class Scene implements EntityParent {
     this.entities = this.entities.filter((e) => e !== entity);
   }
 
-  createEntity(): Entity {
-    const entity = new Entity();
-
-    this.addEntity(entity);
-
-    return entity;
-  }
-
-  private addEntity(entity: Entity) {
+  attachEntity(entity: Entity): void {
     this.entities.push(entity);
-    entity._parent = this;
+    entity._onAttach(this);
   }
 }

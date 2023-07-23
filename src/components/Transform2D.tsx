@@ -1,145 +1,170 @@
 import { Component } from "../Component";
+import { Entity } from "../Entity";
 import { Scene } from "../Scene";
 import { Vector2 } from "../utils/vector";
+import { Collider2D } from "./Collider2D";
 import { RigidBody2D } from "./RigidBody2D";
 
 export class Transform2D extends Component {
-  _localPosition: Vector2 = new Vector2();
+  _rigidBody: RigidBody2D | null = null;
 
-  localRotation: number = 0;
-
-  get localPosition(): Vector2 {
-    return this._localPosition.clone();
+  onAttach(): void {
+    this._rigidBody = this.entity.getComponent(RigidBody2D);
   }
 
-  setPosition(vector: Vector2) {
-    if (this.entity.hasComponent(RigidBody2D)) {
-      this.entity.requireComponent(RigidBody2D).setPosition(vector);
+  private _localPosition: Vector2 = new Vector2(0, 0);
+
+  set localPosition(position: Vector2) {
+    this._localPosition = position;
+    if (this._attached) {
+      this.entity.getComponents(Collider2D).forEach((collider) => {
+        collider._updatePosition();
+      });
     }
-    this._localPosition.x = vector.x;
-    this._localPosition.y = vector.y;
+  }
+  get localPosition() {
+    return this._localPosition;
   }
 
-  setRotation(rotation: number) {
-    if (this.entity.hasComponent(RigidBody2D)) {
-      this.entity.requireComponent(RigidBody2D).setRotation(rotation);
+  _localRotation: number = 0;
+
+  set localRotation(rotation: number) {
+    this._localRotation = rotation;
+    if (this._attached) {
+      this.entity.getComponents(Collider2D).forEach((collider) => {
+        collider._updatePosition();
+      });
     }
-    this.localRotation = rotation;
   }
 
-  rotate(rotation: number) {
-    if (this.entity.hasComponent(RigidBody2D)) {
-      this.entity.requireComponent(RigidBody2D).rotate(rotation);
-    }
-    this.localRotation += rotation;
+  get localRotation() {
+    return this._localRotation;
   }
 
-  translate(vector: Vector2) {
-    if (this.entity.hasComponent(RigidBody2D)) {
-      this.entity.requireComponent(RigidBody2D).translate(vector);
-    }
-    this._localPosition = this._localPosition.add(vector);
-  }
-
-  getGlobalRotation(): number {
-    if (this.entity.parent instanceof Scene) {
+  /**
+   * The rotation of the entity relative to its parent
+   */
+  get rotation() {
+    if (this._rigidBody) {
+      return this._rigidBody.rigidBody.rotation();
+    } else {
       return this.localRotation;
     }
+  }
 
-    const parentTransform = this.entity.parent.requireComponent(Transform2D);
+  /**
+   * The position of the entity relative to its parent
+   */
+  get position() {
+    if (this._rigidBody) {
+      return Vector2.fromObject(this._rigidBody.rigidBody.translation());
+    } else {
+      return this.localPosition.clone();
+    }
+  }
 
-    return parentTransform.getGlobalRotation() + this.localRotation;
+  /**
+   * Get the rotation of the entity relative to the world
+   *
+   */
+  getGlobalRotation(): number {
+    if (this._rigidBody) {
+      return this._rigidBody.rigidBody.rotation();
+    } else {
+      if (this.entity.parent instanceof Scene) {
+        return this.localRotation;
+      } else {
+        if ((this.entity.parent as Entity).hasComponent(Transform2D)) {
+          return (
+            (this.entity.parent as Entity)
+              .requireComponent(Transform2D)
+              .getGlobalRotation() + this.localRotation
+          );
+        } else {
+          return this.localRotation;
+        }
+      }
+    }
   }
 
   getGlobalPosition(): Vector2 {
-    if (this.entity.parent instanceof Scene) {
-      return this.localPosition;
+    if (this._rigidBody) {
+      return Vector2.fromObject(this._rigidBody.rigidBody.translation());
+    } else {
+      if (this.entity.parent instanceof Scene) {
+        return this.localPosition.clone();
+      } else {
+        if ((this.entity.parent as Entity).hasComponent(Transform2D)) {
+          const parentTransform = (
+            this.entity.parent as Entity
+          ).requireComponent(Transform2D);
+
+          const parentPosition = parentTransform.getGlobalPosition();
+          const parentRotation = parentTransform.getGlobalRotation();
+
+          const rotatedPosition = this.localPosition.rotate(parentRotation);
+
+          return parentPosition.add(rotatedPosition);
+        } else {
+          return this.localPosition.clone();
+        }
+      }
     }
-
-    const parentTransform = this.entity.parent.requireComponent(Transform2D);
-
-    const parentGlobalPosition = parentTransform.getGlobalPosition();
-    const parentGlobalRotation = parentTransform.getGlobalRotation();
-
-    const rotatedPosition = this.localPosition.rotate(parentGlobalRotation);
-
-    return parentGlobalPosition.add(rotatedPosition);
   }
 
-  setGlobalRotation(rotation: number) {
-    if (this.entity.parent instanceof Scene) {
+  constructor(position?: Vector2, rotation?: number) {
+    super();
+    if (position) {
+      this.localPosition = position;
+    }
+    if (rotation) {
       this.localRotation = rotation;
-      return;
     }
-
-    const parentTransform = this.entity.parent.requireComponent(Transform2D);
-
-    const parentGlobalRotation = parentTransform.getGlobalRotation();
-
-    this.localRotation = rotation - parentGlobalRotation;
   }
 
-  setGlobalPosition(x: number, y: number) {
-    if (this.entity.parent instanceof Scene) {
-      this._localPosition.x = x;
-      this._localPosition.y = y;
-      return;
+  setTranslation(translation: Vector2) {
+    if (this._rigidBody) {
+      this._rigidBody.rigidBody.setTranslation(translation, true);
+    } else {
+      this.localPosition = translation;
     }
-
-    const parentTransform = this.entity.parent.requireComponent(Transform2D);
-
-    const parentGlobalPosition = parentTransform.getGlobalPosition();
-
-    const rotatedPosition = new Vector2(x, y).subtract(parentGlobalPosition);
-
-    const parentGlobalRotation = parentTransform.getGlobalRotation();
-
-    this._localPosition = rotatedPosition.rotate(-parentGlobalRotation);
   }
 
-  renderDebug() {
-    return (
-      <div>
-        Global Position
-        <table>
-          <tbody>
-            <tr>
-              <td>X</td>
-              <td>Y</td>
-            </tr>
-            <tr>
-              <td style={{ textAlign: "right", minWidth: "100px" }}>
-                {this.getGlobalPosition().x.toFixed(3)}
-              </td>
-              <td style={{ textAlign: "right", minWidth: "100px" }}>
-                {this.getGlobalPosition().y.toFixed(3)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        Local Position
-        <table>
-          <tbody>
-            <tr>
-              <td>X</td>
-              <td>Y</td>
-            </tr>
-            <tr>
-              <td style={{ textAlign: "right", minWidth: "100px" }}>
-                {this.localPosition.x.toFixed(3)}
-              </td>
-              <td style={{ textAlign: "right", minWidth: "100px" }}>
-                {this.localPosition.y.toFixed(3)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        Global Rotation
-        <span>{this.getGlobalRotation().toFixed(3)} rad</span>
-        <br />
-        Local Rotation
-        <span>{this.localRotation.toFixed(3)} rad</span>
-      </div>
-    );
+  translate(translation: Vector2) {
+    if (this._rigidBody) {
+      this._rigidBody.rigidBody.setTranslation(
+        Vector2.fromObject(this._rigidBody.rigidBody.translation()).add(
+          translation
+        ),
+        true
+      );
+    } else {
+      this.localPosition = this.localPosition.add(translation);
+    }
+  }
+
+  rotate(rotation: number) {
+    if (this._rigidBody) {
+      this._rigidBody.rigidBody.setRotation(
+        this._rigidBody.rigidBody.rotation() + rotation,
+        true
+      );
+    } else {
+      this.localRotation += rotation;
+    }
+  }
+
+  pointTowards(position: Vector2) {
+    const globalPosition = this.getGlobalPosition();
+
+    const direction = position.subtract(globalPosition);
+
+    const angle = direction.getAngle();
+
+    this.rotate(angle - this.rotation);
+  }
+
+  get forward() {
+    return Vector2.fromAngle(this.getGlobalRotation());
   }
 }
