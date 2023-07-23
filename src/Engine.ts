@@ -1,3 +1,4 @@
+import { Input } from "./Input";
 import { Scene } from "./Scene";
 
 interface EngineInitProps {
@@ -91,11 +92,13 @@ function setupHtml() {
     const div = document.createElement("div");
     div.id = id;
     document.body.appendChild(div);
+    return div;
   }
 
   createDiv("debug");
   createDiv("ui");
-  createDiv("game");
+  const gameDiv = createDiv("game");
+  Input._setGameElement(gameDiv);
 }
 
 function setHtmlTitle() {
