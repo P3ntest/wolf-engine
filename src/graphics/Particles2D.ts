@@ -7,6 +7,7 @@ import { DrawProps } from "../renderers/Renderer";
 export interface Particles2DProps {
   scale?: number;
   autostart?: boolean;
+  zIndex?: number;
 }
 
 export class Particles2D extends Object2D {
@@ -20,6 +21,7 @@ export class Particles2D extends Object2D {
     super(container);
 
     container.scale.set(props.scale ?? 1);
+    container.zIndex = props.zIndex ?? 0;
 
     this.props = props;
 
@@ -39,9 +41,15 @@ export class Particles2D extends Object2D {
     this.emitter.emit = true;
   }
 
+  stop() {
+    this.running = false;
+    this.emitter.emit = false;
+  }
+
   draw({ deltaTime }: DrawProps): void {
-    if (!this.running) return;
+    // if (!this.running) return;
     this.emitter.update(deltaTime / 1000);
+    // console.log("draw");
   }
 
   static from(

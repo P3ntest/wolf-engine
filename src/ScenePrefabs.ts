@@ -6,7 +6,11 @@ import { ReactUIRenderer } from "./renderers/ReactUIRenderer";
 export const ScenePrefabs = {
   Scene2D: (scene: Scene) => {
     scene.setWorldRenderer(new PIXIRenderer(document.getElementById("game")!));
-    scene.setWorldPhysics(new Physics2D());
+    scene.setWorldPhysics(
+      new Physics2D({
+        gravity: false,
+      })
+    );
     scene.addRenderer(new ReactUIRenderer(document.getElementById("ui")!));
   },
 };

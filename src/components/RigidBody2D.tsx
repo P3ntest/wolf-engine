@@ -16,11 +16,14 @@ export class RigidBody2D extends Component {
 
   _initialPosition: Vector2 = new Vector2(0, 0);
   _initialRotation: number = 0;
-  constructor(props: {
-    fixed?: boolean;
-    initialPosition?: Vector2;
-    initialRotation?: number;
-  }) {
+  constructor(
+    public props: {
+      fixed?: boolean;
+      initialPosition?: Vector2;
+      initialRotation?: number;
+      lockRotation?: boolean;
+    }
+  ) {
     super();
     this.rigidBodyDesc =
       props.fixed ?? false
@@ -56,6 +59,8 @@ export class RigidBody2D extends Component {
 
     this.rigidBody.setRotation(this._initialRotation, true);
     this.rigidBody.setTranslation(this._initialPosition._toRapier(), true);
+
+    if (this.props.lockRotation) this.rigidBody.lockRotations(true, false);
   }
 
   lerpForce(targetForce: Vector2, thrust: number) {
@@ -64,5 +69,9 @@ export class RigidBody2D extends Component {
     const force = targetForce.subtract(currentVelocity).multiplyScalar(thrust);
 
     this.rigidBody.applyImpulse(force._toRapier(), true);
+  }
+
+  applyImpulse(impulse: Vector2) {
+    this.rigidBody.applyImpulse(impulse._toRapier(), true);
   }
 }

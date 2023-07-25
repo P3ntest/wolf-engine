@@ -22,7 +22,7 @@ export class Engine {
   private static __instance: Engine | null;
   static get _instance() {
     if (!Engine.__instance) {
-      throw new Error("Engine not initialized");
+      Engine.init();
     }
     return Engine.__instance;
   }
@@ -30,6 +30,7 @@ export class Engine {
   static init(props: Partial<EngineInitProps> = {}) {
     printInitMessages();
     Engine.__instance = new Engine(props);
+    Input.init();
     setHtmlTitle();
   }
 
